@@ -51,6 +51,8 @@ def main():
     parser.add_argument("--model", default=os.getenv("OLLAMA_MODEL", DEFAULT_MODEL))
     parser.add_argument("--demo-customer-id", type=int, default=None,
                         help="For local candidate-only test, NOT production authentication")
+    parser.add_argument("--scenario", type=int, choices=range(1, 5), action="append",
+                        help="Capture only selected scenario numbers (repeatable); default: all four")
     args = parser.parse_args()
     ensure_model(args.model)
     client = build_client()
@@ -61,6 +63,9 @@ def main():
              f"Recorded with model `{args.model}` using `scripts/capture_examples.py`.",
              "The database is a snapshot. No live store backend or real authentication is used.", ""]
     for number, (title, _, prompts) in enumerate(SCENARIOS, 1):
+        if args.scenario and number not in args.scenario:
+            continue
+        print(f"Running real model: conversation {number} — {title}", flush=True)
         tools = RecordingTools(ToolContext(Path(args.db), args.demo_customer_id))
         agent = Agent(tools, client, model=args.model)
         lines.extend([f"## Conversation {number}: {title}", ""])
@@ -71,13 +76,14 @@ def main():
             if answer.startswith("Não consegui consultar o assistente agora"):
                 raise RuntimeError("Local model failed. Nothing was saved. Check Ollama and the selected model.")
             used = tools.called[before:]
+            print(f"  turn: tools={used or []}; response_chars={len(answer)}", flush=True)
             lines.extend([f"**Customer:** {prompt}", "", f"**Agent:** {answer}",
                           f"**Tools used:** {', '.join(used) if used else '(none)'}", ""])
         if number in (1, 2, 3) and not tools.called:
             raise RuntimeError(f"Conversation {number} did not use tools. Nothing was saved.")
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(lines), encoding="utf-8")
-    print("Saved live output to", args.out)
+    print("Saved real local-model output to", args.out)
 
 
 if __name__ == "__main__":
