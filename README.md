@@ -1,109 +1,73 @@
-# Empório da Música — Customer Service Agent
+# Empório da Música — customer service agent
 
-A small Python agent for Artefact's AI Engineer challenge. It answers customer questions in Brazilian Portuguese, looks up the store's catalog and policies, and explains when it cannot complete a request.
+A small Python agent built for the Artefact AI Engineer challenge. It answers customer messages in Portuguese using a product catalog, order records and a store policy document. It can explain an answer, but it cannot place an order or promise that a return has been approved.
 
-**Runs locally and costs nothing to use.** The language model runs on your computer with [Ollama](https://ollama.com/download). There is no hosted LLM, API key, login, web deployment, or paid service.
+The app runs on a computer with Ollama. There is no account, paid LLM API, or hosted service.
 
-## Try it locally
+## Run it
 
-You need Python 3.11+ and Ollama installed. Ollama must be running. The default model is [`qwen3:4b`](https://ollama.com/library/qwen3:4b) (about 2.5 GB to download); other installed tool-calling models may be selected with `--model`.
+You need Python 3.11 or newer and [Ollama](https://ollama.com/download). The recommended model is `qwen3:4b-instruct` (about 2.5 GB). It is a free download; unlike the thinking-oriented `qwen3:4b` tag, it is intended to give direct responses without exposing intermediate reasoning.
 
-```bash
-# Run from the repository directory. Create a virtual environment (recommended):
-python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-# Linux/macOS: source .venv/bin/activate
-python -m pip install -r requirements.txt
+On Windows PowerShell, from a clone of this repository:
 
-# See which models you already have:
-ollama list
-# Download the default model (only if not installed):
-ollama pull qwen3:4b
-
-# Prepare a local database with clearly fictional sample data:
-python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
-python scripts/check_local.py
-python main.py --db data/demo.db
+```powershell
+ollama pull qwen3:4b-instruct
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
+.\.venv\Scripts\python.exe scripts/check_local.py --model qwen3:4b-instruct
+.\.venv\Scripts\python.exe main.py --db data/demo.db
 ```
 
-Type a question such as *“Quais violões têm até R$ 1000?”* or *“Quais são as regras de devolução?”*. Type `sair` to close. The `scripts/setup_local.py` helper can download the model and prepare the same demo database in one step after you install Ollama and the Python dependencies.
+Keep the Ollama desktop app running. If necessary, start `ollama serve` in a different terminal. After the model is downloaded, inference runs on your computer without sending customer messages to a cloud LLM. CPU-only inference is supported but can be slow.
 
-If Ollama is installed but not running, start it through its Windows application or run `ollama serve` in another terminal. Model download requires an internet connection **once**; inference and the customer's messages remain on your machine afterward. The model will use your CPU or compatible GPU. RAM, VRAM and response speed depend on your computer.
+Try asking: *"Estou começando a tocar violão e tenho até R$ 900. O que você tem disponível?"* Then ask a follow-up without repeating the budget. Type `sair` to quit.
 
-### Use the challenge dataset
+### Run it with the assignment's original data
 
-The original CSVs and internal policy manual were intentionally **not included** in this public repository. If you received the challenge ZIP, import it directly:
+The recruitment materials contain an internal policy manual and customer data, so they are **not redistributed** in this public repository. The original ZIP can be imported locally without copying its contents into Git:
 
-```bash
-python scripts/import_challenge_zip.py "/path/to/Desafio_Técnico_AI_Engineer_2026.zip" --db data/emporio.db
-python main.py --db data/emporio.db
+```powershell
+.\.venv\Scripts\python.exe scripts/import_challenge_zip.py "C:\path\to\Desafio_Tecnico_AI_Engineer.zip" --db data/emporio.db
+.\.venv\Scripts\python.exe main.py --db data/emporio.db
 ```
 
-On Windows, use a quoted path such as `"C:\Users\You\Downloads\desafio.zip"`. The script locates the six CSVs and policy PDF within the ZIP, creates the database locally, and discards temporary extracted files. The database is ignored by Git.
+The import script locates the six CSVs and the PDF, reads their content into a local SQLite database, and removes its temporary extracted copy. `data/*.db` is ignored by Git. The `fixtures/` folder contains deliberately fictional sample records; they are not the real customers.
 
-To run with an **already installed** model instead, pass `--model` to the agent and tools:
+## Why this design
 
-```bash
-ollama list
-python main.py --db data/emporio.db --model qwen3:4b
-python scripts/capture_examples.py --db data/emporio.db --model qwen3:4b
+I kept the application close to the assignment. A CLI is enough to demonstrate the agent, and Python's standard library plus `pypdf` cover the data and model integration.
+
+- **Local LLM:** Qwen3 4B Instruct runs through Ollama's native `/api/chat` endpoint, with short responses and thinking disabled. No API keys or paid provider SDKs.
+- **Tools and business rules:** The model can request product, promotion, policy or order data. Python owns the queries, discount calculations and authorization checks; the model never writes SQL. Because small models sometimes skip tool calls, straightforward intents also have a short deterministic prefetch step before generation. The prefetch is deliberate routing, not an LLM-selected tool call.
+- **Data:** The six CSVs are loaded into SQLite with schema and relationship checks. Catalog results only label a product available when it is active **and** has positive stock. Order records and promotions are historical snapshots, not live integrations.
+- **Policy retrieval:** The provided PDF is split into searchable pages with normalized terms. This is easier to explain and maintain than embeddings for a short manual, although unusual paraphrases can still be missed.
+- **Conversation context:** The latest eight turns are kept in memory for follow-up questions. The user session is not persisted after exiting.
+
+Orders can only be read for a customer ID supplied by a trusted host. The CLI option `--demo-customer-id 1` simulates such a host **for local testing only**; it is not authentication and must not be used on a publicly reachable service. An ID or authorization asserted by the customer in chat never changes the session's identity.
+
+The manual has conflicting contact details and overlapping parcel minimums. The agent should acknowledge ambiguity instead of inventing a definitive answer. Promotions are not cumulative with each other or with PIX discounts, and the promotion CSV has no expiry dates to infer.
+
+## Tests and demonstration
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts/capture_examples.py --db data/demo.db
+.\.venv\Scripts\python.exe scripts/run_evals.py --db data/demo.db
 ```
 
-Nothing in this project tries to start Ollama Cloud: the client only accepts a `localhost` or `127.0.0.1` address (the default is `http://127.0.0.1:11434/v1`). No `.env`, API key or cloud subscription is required.
+`pytest` covers imports, stock, SQL/tool validation, discounts, policy retrieval, conversation memory, incorrect model-generated amounts and access control. The repository includes synthetic fixtures so the standard suite is reproducible; additional checks using the original materials are optional and local-only (`ARTEFACT_SOURCE_DIR` and `ARTEFACT_POLICY_PDF`).
 
-## How it works
+The four scenarios in `evals/scenarios.json` cover a beginner's budget, a promotion with PIX/instalments, a return with missing packaging, and an order request involving another customer's data. `capture_examples.py` saves **actual model output**, including which tools were used, to Markdown. It does not fabricate a conversation when a run fails. You can reproduce a single case with `--scenario 3 --out examples/my_test.md`.
 
-```text
-Customer -> local Ollama model -> tool call -> Python function
-                                          |-> SQLite read-only queries
-                                          |-> policy text search
-                          <- structured result <-
-         <- Portuguese answer <- Ollama
-```
+`run_evals.py` separately checks expected tools, factual markers and forbidden claims. These checks are useful but not a substitute for manually reviewing the transcript. A scripted HTTP test verifies that the code can communicate with Ollama; it is explicitly not counted as a real-model evaluation.
 
-- **Tool calling:** the model decides whether to search catalog entries, fetch product details, consult a policy, check promotions, calculate payment options or view an authorized order. The Python functions define what may be accessed. The model never writes SQL.
-- **SQLite:** all six supplied CSVs can be imported with schema checks and foreign keys. Product availability requires an active status **and** positive stock. Orders and promotions are static snapshots, not live store systems.
-- **Policy retrieval:** the short PDF is extracted by `pypdf` and searched by normalized terms; a vector database would add complexity without a clear benefit for this manual. Results include source pages. It can miss unusual paraphrases.
-- **Local model:** Qwen3 4B Instruct was chosen for its modest download size and tool-calling support. A tiny standard-library HTTP client talks only to Ollama's compatible local chat endpoint. No orchestration framework or paid SDK is needed.
-- **Conversation state:** the last eight turns are kept in memory during the CLI session. Sessions are not persisted after restart.
+The GitHub Actions workflows run the deterministic tests and, separately, attempt real-model conversations with only fictional fixtures on temporary Linux runners. The CI artifacts contain model outputs when a scenario completes; inspect the run result before relying on them as evidence.
 
-### Limits and business rules
+## What it does not do
 
-The agent cannot buy products, reserve stock, file returns, issue refunds, reach a person or provide live delivery updates; it should never claim those actions succeeded. It is a read-only prototype.
-
-The original data has a few traps: some active products have no stock; active promotions have no explicit start/end dates; the policy document contains competing installment minimums and conflicting contact information. The code applies specific installment rules, never combines promotion and PIX discounts, and does not invent promotion expiry dates or a definitive contact channel when sources disagree.
-
-Order lookup is disabled unless the host supplies a trusted `authenticated_customer_id`. For **local demonstrations only**, `python main.py --db data/demo.db --demo-customer-id 1` simulates an already-authenticated customer. It does **not** authenticate anyone. Never expose this switch through a public web server or use it with real customer data. No personal names or emails are returned by the order tool.
-
-The included `fixtures/` are fictional, not disguised copies of the challenge's customer data. The private policy PDF, customer CSVs, original database and secret files are excluded from version control.
-
-## Tests and example conversations
-
-```bash
-python -m pytest -q  # `pytest -q` works as well
-python scripts/capture_offline_checks.py
-
-# With Ollama running and your chosen model installed:
-python scripts/capture_examples.py --db data/demo.db
-python scripts/run_evals.py --db data/demo.db
-```
-
-- **pytest** exercises import, SQL restrictions, stock, discounts, payments, retrieval, conversation context, privacy, and tool calling. Some checks against the original private dataset are optional: configure `ARTEFACT_SOURCE_DIR` and `ARTEFACT_POLICY_PDF` to run them. The public fixtures are sufficient for the standard tests.
-- **HTTP integration** is tested against a *scripted local server*, to verify actual request/response wiring; it does **not** prove a model ran.
-- **Model-backed conversations:** `capture_examples.py` records four actual multi-turn conversations and tool selections to `examples/live_conversations.md`. The script fails rather than inventing a transcript when model execution fails. Use `--scenario 1` (or repeat `--scenario`) to capture selected scenarios.
-- **Local model evaluation:** `run_evals.py` compares tool selection, required answer facts and forbidden claims against `evals/cases.json`, saving a report in `evals/live_results.json`. Use `--case product_budget` (repeatable) to run selected cases. Models can fail these tests: inspect actual results, rather than assuming a perfect score. These files are produced only after a local inference run.
-- `examples/offline_tool_checks.md` documents only deterministic Python tool executions and is **not** a model-backed demonstration.
-
-## Why no web app?
-
-The assignment explicitly accepts a CLI and local models. Requiring a publicly reachable model server would add deployment cost, operational risk and a privacy problem to a read-only prototype. A web UI or a FastAPI wrapper could be added later if there were a real need, but neither would improve the correctness of the underlying agent here.
+This is a read-only prototype. It cannot make purchases, reserve stock, issue refunds, open support tickets, authenticate customers or track deliveries in real time. Production would require a real authentication provider, integrations to current store systems, more policy-retrieval tests and a larger evaluated conversation set. A web interface could be added, but it is not required by the assignment and would add deployment and maintenance work without improving the current agent.
 
 ## AI-assisted development
 
-ChatGPT was used to review the challenge, sketch a small architecture, implement portions of the Python code and tests, and help audit business rules and documentation. Decisions, importer results and test outcomes were checked against the supplied challenge files. Scripted tests are labeled separately from model execution. The candidate should review and be able to explain the code and any recorded local model outputs before submission.
-
-### Public CI and real-model validation
-
-`Python checks` runs deterministic tests on GitHub Actions with synthetic fixtures. The tests against the private challenge inputs must be run separately on the candidate's machine.
-
-`Offline Qwen3 smoke test` is a separate workflow that tries to download Qwen3 and run Ollama **inside a temporary GitHub-hosted Linux runner**. The workflow uses no paid LLM API, key, private customer data, or hosted application. This is not the same as testing the candidate's personal Windows installation. The runner must have enough CPU/RAM and network access; failed attempts do not count as successful model evaluations. Check the workflow log and its `offline-qwen3-results` artifact for actual evidence. Because the repository is public, Actions logs and uploaded artifacts use only fictional demo fixtures.
+I used ChatGPT for code drafting, reviewing the supplied documents, writing test cases and investigating the Ollama integration. Tests exposed several issues in the initial version, including model responses without tool calls and unsupported prices; those led to the deterministic guardrails above. I reviewed the resulting code and test outputs against the provided materials. In particular, mocked tests are not presented as proof that a real language model answered correctly.
