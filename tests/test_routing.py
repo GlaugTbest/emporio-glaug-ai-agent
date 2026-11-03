@@ -83,3 +83,14 @@ def test_budget_echo_is_not_a_hallucinated_product_price(tools):
     client = SimpleNamespace(chat=SimpleNamespace(completions=fake))
     response = Agent(tools, client).ask("Tenho até R$ 900 para um violão de nylon. Que opções tem?")
     assert "599,90" in response
+
+
+def test_budget_comparison_guard_corrects_false_out_of_budget_claim(tools):
+    fake = OneReply("Tem o Violão Demo Nylon por R$ 599,90. O outro modelo de aço ultrapassa seu orçamento.")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=fake))
+    agent = Agent(tools, client)
+    answer = agent.ask("Quero um violão até R$ 900, tem algum de nylon?")
+    assert "ultrapassa" not in answer
+    assert "849,00" in answer
+    assert "599,90" in answer
+    assert agent.last_answer_source == "python_budget_guard"

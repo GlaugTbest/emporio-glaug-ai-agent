@@ -184,6 +184,23 @@ class Agent:
                 self.last_answer_source = "python_price_guard"
             elif not used_tools and re.search(r"\b\d+(?:[,.]\d+)?\s*%", content):
                 content = "Preciso consultar as informações da loja antes de confirmar descontos."
+            # A listed product has already passed Python's budget filter. If a
+            # model claims that a listed alternative is too expensive, prefer a
+            # short verified comparison to an ungrounded sales claim.
+            searches = [result for name, _, result in verified if name == "search_products"]
+            budget_match = re.search(r"R\$\s*([\d.,]+)", user_message)
+            budget = _as_money(budget_match.group(1)) if budget_match else None
+            if (budget is not None and searches and len(searches[0].get("products", [])) > 1
+                    and re.search(r"ultrapass|acima do (seu |meu )?or[çc]amento|fora do or[çc]amento", content.lower())):
+                options = [p for p in searches[0]["products"]
+                           if Decimal(p["price_brl"]) <= budget and p["available"]]
+                if len(options) > 1:
+                    choices = "; ".join(f"{p['name']}: R$ {p['price_brl'].replace('.', ',')} "
+                                        f"({p['stock_quantity']} em estoque)" for p in options[:3])
+                    content = (f"Dentro de R$ {str(budget).replace('.', ',')}, encontrei "
+                               f"estas opções disponíveis: {choices}. "
+                               "Se você prefere nylon, posso conferir as especificações de cada uma.")
+                    self.last_answer_source = "python_budget_guard"
             current.append({"role": "assistant", "content": content})
             self.histories[session_id] = (prior_turns + [current])[-8:]
             return content

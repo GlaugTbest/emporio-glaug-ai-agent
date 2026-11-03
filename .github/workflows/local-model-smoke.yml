@@ -22,7 +22,7 @@ jobs:
       matrix:
         include:
           - scenario: 1
-            evaluation: product_budget
+            evaluation: budget_900
           - scenario: 2
             evaluation: promotion
           - scenario: 3
