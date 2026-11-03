@@ -93,7 +93,7 @@ Ao citar produtos informe os valores em BRL. Prefira respostas curtas e claras, 
 class Agent:
     tools: StoreTools
     client: Any
-    model: str = "qwen3:4b"
+    model: str = "qwen3:4b-instruct"
     max_tool_rounds: int = 5
     # Each user turn is an indivisible bundle: user, assistant tool calls, tools, reply.
     histories: dict[str, list[list[dict]]] = field(default_factory=dict)

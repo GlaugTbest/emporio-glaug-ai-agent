@@ -48,7 +48,7 @@ jobs:
           cat "$RUNNER_TEMP/ollama.log"
           exit 1
       - name: Download free Qwen3 4B to the runner
-        run: ollama pull qwen3:4b
+        run: ollama pull qwen3:4b-instruct
       - name: Create database from public fictional fixtures
         run: python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
       - name: Capture genuine multi-turn conversation
