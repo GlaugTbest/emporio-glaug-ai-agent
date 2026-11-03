@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - '.github/workflows/local-model-smoke.yml'
+      - 'app/local_client.py'
+      - 'app/agent.py'
+      - 'scripts/capture_examples.py'
+      - 'scripts/run_evals.py'
   workflow_dispatch:
 
 jobs:
