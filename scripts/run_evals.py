@@ -30,10 +30,19 @@ def main():
     parser.add_argument("--cases", default="evals/cases.json")
     parser.add_argument("--output", default="evals/live_results.json")
     parser.add_argument("--model", default=os.getenv("OLLAMA_MODEL", DEFAULT_MODEL))
+    parser.add_argument("--case", action="append", dest="selected_cases",
+                        help="Only run a named case ID (repeatable); default: all cases")
     args = parser.parse_args()
     ensure_model(args.model)
-    client = build_client()  # Fail without a real key, never fabricate scores.
+    client = build_client()  # Local Ollama only; never fabricate evaluation scores.
     cases = json.loads(Path(args.cases).read_text(encoding="utf-8"))
+    if args.selected_cases:
+        unknown = sorted(set(args.selected_cases) - {case["id"] for case in cases})
+        if unknown:
+            parser.error(f"Unknown case ID: {unknown}")
+        cases = [case for case in cases if case["id"] in args.selected_cases]
+    if not cases:
+        parser.error("No evaluation cases selected")
     sessions = {}
     details = []
     for case in cases:
@@ -43,6 +52,7 @@ def main():
             sessions[key] = (Agent(traced, client, model=args.model), traced)
         agent, traced = sessions[key]
         traced.calls.clear()
+        print(f"Evaluating {case['id']} with real Ollama", flush=True)
         answer = agent.ask(case["user"], session_id=key)
         used = [c["tool"] for c in traced.calls]
         tool_ok = case["expected_tool"] in used if case["expected_tool"] else not used
