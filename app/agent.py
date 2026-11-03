@@ -201,6 +201,28 @@ class Agent:
                                f"estas opções disponíveis: {choices}. "
                                "Se você prefere nylon, posso conferir as especificações de cada uma.")
                     self.last_answer_source = "python_budget_guard"
+            # A historical "shipped" status does not prove where a parcel is
+            # today. Replace claims of current transit with the exact stored
+            # snapshot instead of relying on wording from a small model.
+            previous_orders = [result["order"] for result in tool_evidence
+                               if isinstance(result, dict) and isinstance(result.get("order"), dict)]
+            if (previous_orders and re.search(r"\b(?:est[aá] em tr[aâ]nsito|est[aá] a caminho|em tr[aâ]nsito agora)\b",
+                                              content.lower())):
+                order = previous_orders[-1]
+                labels = {"shipped": "enviado", "delivered": "entregue", "confirmed": "confirmado",
+                          "cancelled": "cancelado", "pending": "pendente"}
+                label = labels.get(str(order.get("status", "")).lower(), str(order.get("status", "não informado")))
+                content = (f"No registro local, o pedido {order.get('order_id')} consta como {label}. "
+                           "Esse é um status histórico, sem atualização da transportadora em tempo real.")
+                expected = str(order.get("estimated_delivery") or "")
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", expected):
+                    year, month, day = expected.split("-")
+                    content += f" A previsão que constava no registro era {day}/{month}/{year}."
+                tracking = order.get("tracking_code")
+                if tracking:
+                    content += f" Código de rastreio registrado: {tracking}."
+                content += " Não consigo confirmar a localização atual nem se a entrega já ocorreu."
+                self.last_answer_source = "python_order_snapshot_guard"
             current.append({"role": "assistant", "content": content})
             self.histories[session_id] = (prior_turns + [current])[-8:]
             return content

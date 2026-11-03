@@ -85,3 +85,19 @@ def test_provider_error_does_not_corrupt_session(tools):
     agent = Agent(tools, client)
     assert "my-secret" not in agent.ask("Oi")
     assert not agent.histories
+
+
+def test_historical_order_cannot_be_reported_as_current_transit(tools):
+    from app.tools import StoreTools, ToolContext
+
+    trusted = StoreTools(ToolContext(tools.context.database, 1))
+    client, fake = fake_client([message("O pedido 4 está em trânsito agora e chega hoje.")])
+    agent = Agent(trusted, client)
+    response = agent.ask("Meu pedido número 4 está a caminho?")
+    assert len(fake.requests) == 1
+    assert agent.last_answer_source == "python_order_snapshot_guard"
+    assert "status histórico" in response
+    assert "05/02/2026" in response
+    assert "DEMO-TRACK-01" in response
+    assert "localização atual" in response
+    assert "está em trânsito agora" not in response
