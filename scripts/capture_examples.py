@@ -47,7 +47,8 @@ def run_scenario(scenario: dict, *, db: Path, model: str, client) -> str:
         used = [call["name"] for call in tools.calls[before:]]
         print(f"Scenario {scenario['id']} turn {index}: tools={used}; chars={len(answer)}", flush=True)
         lines += [f"**Customer:** {question}", "", f"**Agent:** {answer}", "",
-                  f"**Tools:** {', '.join(used) if used else '(none)'}", ""]
+                  f"**Tools:** {', '.join(used) if used else '(none)'}", "",
+                  f"**Response source:** {agent.last_answer_source}", ""]
     if not tools.calls:
         raise RuntimeError(f"Scenario {scenario['id']} never used a tool; inspect before submitting")
     return "\n".join(lines)

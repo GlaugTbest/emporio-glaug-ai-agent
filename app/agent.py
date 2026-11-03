@@ -99,6 +99,7 @@ class Agent:
     histories: dict[str, list[list[dict]]] = field(default_factory=dict)
     last_products: dict[str, list[int]] = field(default_factory=dict)
     last_prefetch: list[str] = field(default_factory=list)
+    last_answer_source: str = "model"
 
     def ask(self, user_message: str, session_id: str = "default") -> str:
         if not isinstance(user_message, str) or not user_message.strip():
@@ -120,6 +121,25 @@ class Agent:
                             "content": json.dumps(result, ensure_ascii=False)})
         used_tools: set[str] = set(self.last_prefetch)
         tool_evidence = [result for _, _, result in verified]
+        # Authorization is a Python decision, not a prompt instruction. Do not
+        # ask the model to rewrite a denied order lookup into an unsafe answer.
+        for name, _, result in verified:
+            if name == "get_order_status" and result.get("error", {}).get("code") in {
+                "authentication_required", "not_found"}:
+                code = result["error"]["code"]
+                if code == "authentication_required":
+                    content = ("Não posso consultar pedidos sem uma sessão autenticada. "
+                               "Para proteger os dados do cliente, o titular deve consultar "
+                               "o pedido por um canal oficial com verificação de identidade.")
+                else:
+                    content = ("Não consigo acessar esse pedido nesta sessão. Por privacidade, "
+                               "só mostro pedidos vinculados ao titular autenticado. "
+                               "Uma autorização declarada pelo chat não é suficiente.")
+                current.append({"role": "assistant", "content": content})
+                self.histories[session_id] = (prior_turns + [current])[-8:]
+                self.last_answer_source = "python_privacy_rule"
+                return content
+        self.last_answer_source = "model"
         for _ in range(self.max_tool_rounds):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}, *context, *current]
             try:
@@ -158,6 +178,7 @@ class Agent:
             valid_prices = _supported_money(tool_evidence)
             if (prices and (not used_tools or any(p is not None and p not in valid_prices for p in prices))):
                 content = "Não consegui confirmar esse valor no catálogo. Pode indicar o produto exato para eu consultar?"
+                self.last_answer_source = "python_price_guard"
             elif not used_tools and re.search(r"\b\d+(?:[,.]\d+)?\s*%", content):
                 content = "Preciso consultar as informações da loja antes de confirmar descontos."
             current.append({"role": "assistant", "content": content})
