@@ -68,3 +68,9 @@ def test_policy_retrieval_with_source(tools):
     assert return_pages and any("arrependimento" in r["content"].lower() for r in return_pages)
     assert any("source_page" in r for r in return_pages)
     assert tools.search_store_policies("qual horário abre aos sábados?")["sections"]
+
+
+def test_natural_portuguese_catalog_search(tools):
+    products = tools.search_products(query="violões de nylon", max_price_brl=900)["products"]
+    assert [p["name"] for p in products] == ["Violão Demo Nylon"]
+    assert tools.search_products(query="guitarras", max_price_brl=2300)["match_count"] == 1

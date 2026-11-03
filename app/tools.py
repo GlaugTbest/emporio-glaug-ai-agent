@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
@@ -109,12 +110,18 @@ class StoreTools:
         with read_only_connection(self.context.database) as conn:
             rows = conn.execute("""SELECT p.*, c.name AS category_name FROM products p
                 JOIN categories c ON c.category_id=p.category_id""").fetchall()
-        terms = fold(query).split()
+        # Ignore filler words and account for natural plural forms in Portuguese.
+        # Searching specifications matters for questions such as "violões de nylon".
+        def word(term: str) -> str:
+            return {"violoes": "violao", "guitarras": "guitarra", "cordas": "corda"}.get(term, term)
+        stop = {"de", "do", "da", "dos", "das", "um", "uma", "com", "para", "ate", "por"}
+        terms = [word(t) for t in re.findall(r"[a-z0-9]+", fold(query)) if t not in stop]
         matches = []
         out_of_stock_matches = 0
         for row in rows:
             item = _product_row(row)
-            haystack = fold(f"{item['name']} {item['description']} {item['category_name']}")
+            source = f"{item['name']} {item['description']} {item['category_name']} {json.dumps(item.get('specs', {}), ensure_ascii=False)}"
+            haystack = " ".join(word(t) for t in re.findall(r"[a-z0-9]+", fold(source)))
             if terms and not all(term in haystack for term in terms):
                 continue
             if category and fold(category) not in fold(item["category_name"]):
