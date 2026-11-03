@@ -1,0 +1,4 @@
+# Runtime: Python standard library + pypdf (for one local policy PDF).
+pypdf>=5.0,<7
+# Test runner (development only)
+pytest>=8.0,<10

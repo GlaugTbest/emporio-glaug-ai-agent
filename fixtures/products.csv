@@ -1,0 +1,8 @@
+product_id,price_brl,name,category_id,description,stock_quantity,status,specs,created_at
+1,599.90,Violão Demo Nylon,1,Modelo ficticio para iniciantes,5,active,"{""strings"":""nylon"",""color"":""Natural""}",2026-01-01
+2,849.00,Violão Demo Aço,1,Modelo ficticio intermediario,2,active,"{""strings"":""steel""}",2026-01-01
+3,689.00,Violão Demo Sem Estoque,1,Modelo ficticio indisponivel,0,active,{},2026-01-01
+4,2100.00,Guitarra Demo Promocional,2,Modelo ficticio para teste de desconto,2,active,{},2026-01-01
+5,3500.00,Guitarra Demo Descontinuada,2,Modelo ficticio fora de linha,0,discontinued,{},2026-01-01
+6,4200.00,Guitarra Demo Em Breve,2,Modelo ficticio ainda nao vendido,0,coming_soon,{},2026-01-01
+7,2599.00,Takamine GD20 - DEMO FICTICIO,1,Preco inventado somente para testes locais,3,active,{},2026-01-01

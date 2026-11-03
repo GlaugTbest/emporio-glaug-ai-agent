@@ -1,0 +1,3 @@
+customer_id,name,phone,email,city
+1,Pessoa Teste A,(00) 00000-0000,customer-a@example.invalid,Campo Grande
+2,Pessoa Teste B,(00) 11111-1111,customer-b@example.invalid,Campo Grande

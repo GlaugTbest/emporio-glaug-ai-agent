@@ -1,0 +1,4 @@
+order_id,customer_id,order_date,status,total_brl,payment_method,tracking_code,estimated_delivery,notes
+4,1,2026-02-01,shipped,599.90,pix,DEMO-TRACK-01,2026-02-05,
+5,2,2026-02-02,confirmed,2100.00,credit_6x,,2026-02-10,
+6,1,2026-02-03,cancelled,849.00,boleto,,,
