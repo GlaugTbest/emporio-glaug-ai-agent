@@ -1,0 +1,47 @@
+name: Offline Qwen3 smoke test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/local-model-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  ollama-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Install free local Ollama runtime
+        run: curl -fsSL https://ollama.com/install.sh | sh
+      - name: Start local Ollama
+        run: |
+          ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:11434/api/tags > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/ollama.log"
+          exit 1
+      - name: Pull free Qwen3 4B weights
+        run: ollama pull qwen3:4b
+      - name: Import fictional sample data
+        run: python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
+      - name: Record real Qwen3 conversations
+        run: python scripts/capture_examples.py --db data/demo.db --out examples/live_conversations.md
+      - name: Run local model evaluations
+        run: python scripts/run_evals.py --db data/demo.db --output evals/live_results.json
+      - name: Save reproducible results, including on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-qwen3-results
+          if-no-files-found: warn
+          path: |
+            examples/live_conversations.md
+            evals/live_results.json
