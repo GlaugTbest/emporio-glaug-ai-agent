@@ -46,19 +46,18 @@ def test_local_http_transport_tools_and_preflight(tools):
             self.wfile.write(body)
 
         def do_POST(self):
-            assert self.path == "/v1/chat/completions"
+            assert self.path == "/api/chat"
             msg = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             seen.append(msg)
             if len(seen) == 1:
                 reply = {"role": "assistant", "content": None, "tool_calls": [{
-                    "id": "local_1", "type": "function", "function": {
-                        "name": "search_products", "arguments": '{"category":"violões","max_price_brl":1000}'
+                    "type": "function", "function": {
+                        "name": "search_products", "arguments": {"category":"violões","max_price_brl":1000}
                     }}]}
             else:
-                assert any(m["role"] == "tool" and "Violão Demo Nylon" in m["content"] for m in msg["messages"])
+                assert any(m["role"] == "tool" and m["tool_name"] == "search_products" and "Violão Demo Nylon" in m["content"] for m in msg["messages"])
                 reply = {"role": "assistant", "content": "O Violão Demo Nylon custa R$ 599,90."}
-            body = json.dumps({"id": "chatcmpl-local-test", "object": "chat.completion", "created": 0,
-                               "model": "demo:local", "choices": [{"index": 0, "finish_reason": "stop", "message": reply}]}).encode()
+            body = json.dumps({"model": "demo:local", "message": reply, "done": True}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
@@ -77,7 +76,8 @@ def test_local_http_transport_tools_and_preflight(tools):
         result = Agent(tools, build_client(endpoint), model="demo:local").ask("Violões até 1000?")
         assert "599,90" in result
         assert len(seen) == 2
-        assert seen[0]["reasoning_effort"] == "none"
+        assert seen[0]["think"] is False
+        assert seen[0]["options"]["num_predict"] <= 300
         assert seen[0]["tools"]
     finally:
         server.shutdown()
