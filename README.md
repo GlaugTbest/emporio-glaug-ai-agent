@@ -6,7 +6,7 @@ A small Python agent for Artefact's AI Engineer challenge. It answers customer q
 
 ## Try it locally
 
-You need Python 3.11+ and Ollama installed. Ollama must be running. The default model is [`qwen3:4b-instruct`](https://ollama.com/library/qwen3:4b-instruct) (about 2.5 GB to download); other installed tool-calling models may be selected with `--model`.
+You need Python 3.11+ and Ollama installed. Ollama must be running. The default model is [`qwen3:4b`](https://ollama.com/library/qwen3:4b) (about 2.5 GB to download); other installed tool-calling models may be selected with `--model`.
 
 ```bash
 # Run from the repository directory. Create a virtual environment (recommended):
@@ -18,7 +18,7 @@ python -m pip install -r requirements.txt
 # See which models you already have:
 ollama list
 # Download the default model (only if not installed):
-ollama pull qwen3:4b-instruct
+ollama pull qwen3:4b
 
 # Prepare a local database with clearly fictional sample data:
 python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
@@ -45,8 +45,8 @@ To run with an **already installed** model instead, pass `--model` to the agent 
 
 ```bash
 ollama list
-python main.py --db data/emporio.db --model qwen3:4b-instruct
-python scripts/capture_examples.py --db data/emporio.db --model qwen3:4b-instruct
+python main.py --db data/emporio.db --model qwen3:4b
+python scripts/capture_examples.py --db data/emporio.db --model qwen3:4b
 ```
 
 Nothing in this project tries to start Ollama Cloud: the client only accepts a `localhost` or `127.0.0.1` address (the default is `http://127.0.0.1:11434/v1`). No `.env`, API key or cloud subscription is required.
