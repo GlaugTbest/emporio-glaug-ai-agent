@@ -80,7 +80,7 @@ The included `fixtures/` are fictional, not disguised copies of the challenge's 
 ## Tests and example conversations
 
 ```bash
-python -m pytest -q
+python -m pytest -q  # `pytest -q` works as well
 python scripts/capture_offline_checks.py
 
 # With Ollama running and your chosen model installed:
@@ -90,8 +90,8 @@ python scripts/run_evals.py --db data/demo.db
 
 - **pytest** exercises import, SQL restrictions, stock, discounts, payments, retrieval, conversation context, privacy, and tool calling. Some checks against the original private dataset are optional: configure `ARTEFACT_SOURCE_DIR` and `ARTEFACT_POLICY_PDF` to run them. The public fixtures are sufficient for the standard tests.
 - **HTTP integration** is tested against a *scripted local server*, to verify actual request/response wiring; it does **not** prove a model ran.
-- **Model-backed conversations:** `capture_examples.py` records four actual multi-turn conversations and tool selections to `examples/live_conversations.md`. The script fails rather than inventing a transcript when model execution fails.
-- **Local model evaluation:** `run_evals.py` compares tool selection, required answer facts and forbidden claims against `evals/cases.json`, saving a report in `evals/live_results.json`. Models can fail these tests: inspect actual results, rather than assuming a perfect score. These files are produced only after a local inference run.
+- **Model-backed conversations:** `capture_examples.py` records four actual multi-turn conversations and tool selections to `examples/live_conversations.md`. The script fails rather than inventing a transcript when model execution fails. Use `--scenario 1` (or repeat `--scenario`) to capture selected scenarios.
+- **Local model evaluation:** `run_evals.py` compares tool selection, required answer facts and forbidden claims against `evals/cases.json`, saving a report in `evals/live_results.json`. Use `--case product_budget` (repeatable) to run selected cases. Models can fail these tests: inspect actual results, rather than assuming a perfect score. These files are produced only after a local inference run.
 - `examples/offline_tool_checks.md` documents only deterministic Python tool executions and is **not** a model-backed demonstration.
 
 ## Why no web app?
@@ -101,3 +101,9 @@ The assignment explicitly accepts a CLI and local models. Requiring a publicly r
 ## AI-assisted development
 
 ChatGPT was used to review the challenge, sketch a small architecture, implement portions of the Python code and tests, and help audit business rules and documentation. Decisions, importer results and test outcomes were checked against the supplied challenge files. Scripted tests are labeled separately from model execution. The candidate should review and be able to explain the code and any recorded local model outputs before submission.
+
+### Public CI and real-model validation
+
+`Python checks` runs deterministic tests on GitHub Actions with synthetic fixtures. The tests against the private challenge inputs must be run separately on the candidate's machine.
+
+`Offline Qwen3 smoke test` is a separate workflow that tries to download Qwen3 and run Ollama **inside a temporary GitHub-hosted Linux runner**. The workflow uses no paid LLM API, key, private customer data, or hosted application. This is not the same as testing the candidate's personal Windows installation. The runner must have enough CPU/RAM and network access; failed attempts do not count as successful model evaluations. Check the workflow log and its `offline-qwen3-results` artifact for actual evidence. Because the repository is public, Actions logs and uploaded artifacts use only fictional demo fixtures.
