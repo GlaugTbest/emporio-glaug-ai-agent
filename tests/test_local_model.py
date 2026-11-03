@@ -77,6 +77,7 @@ def test_local_http_transport_tools_and_preflight(tools):
         result = Agent(tools, build_client(endpoint), model="demo:local").ask("Violões até 1000?")
         assert "599,90" in result
         assert len(seen) == 2
+        assert seen[0]["reasoning_effort"] == "none"
         assert seen[0]["tools"]
     finally:
         server.shutdown()

@@ -22,6 +22,7 @@ class _Completions:
                temperature: float = 0.2):
         payload = json.dumps({"model": model, "messages": messages,
                               "tools": tools, "temperature": temperature,
+                              "reasoning_effort": "none",
                               "stream": False}, ensure_ascii=False).encode("utf-8")
         request = Request(self.base_url + "/chat/completions", data=payload,
                           headers={"Content-Type": "application/json"}, method="POST")
