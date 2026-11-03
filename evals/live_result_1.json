@@ -1,0 +1,23 @@
+{
+  "timestamp_utc": "2026-11-03T21:29:43.894518+00:00",
+  "mode": "LOCAL_OLLAMA_LLM",
+  "model": "qwen3:4b-instruct",
+  "cases": 1,
+  "passed": 1,
+  "pass_rate_percent": 100.0,
+  "results": [
+    {
+      "case": "budget_900",
+      "passed": true,
+      "tool_selection_pass": true,
+      "facts_check_pass": true,
+      "forbidden_response_check_pass": true,
+      "tools": [
+        "search_products",
+        "get_product_details",
+        "get_product_details"
+      ],
+      "response": "Dentro de R$ 900, encontrei estas opções disponíveis: Violão Demo Nylon: R$ 599,90 (5 em estoque); Violão Demo Aço: R$ 849,00 (2 em estoque). Se você prefere nylon, posso conferir as especificações de cada uma."
+    }
+  ]
+}
