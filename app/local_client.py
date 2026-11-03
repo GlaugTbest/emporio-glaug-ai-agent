@@ -25,7 +25,7 @@ class _Completions:
                               "stream": False}, ensure_ascii=False).encode("utf-8")
         request = Request(self.base_url + "/chat/completions", data=payload,
                           headers={"Content-Type": "application/json"}, method="POST")
-        with urlopen(request, timeout=120) as response:
+        with urlopen(request, timeout=300) as response:
             data = json.load(response)
         message = data["choices"][0]["message"]
         calls = [SimpleNamespace(id=call["id"], function=SimpleNamespace(
