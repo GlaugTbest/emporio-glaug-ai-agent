@@ -8,7 +8,7 @@ from urllib.error import URLError
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
-DEFAULT_MODEL = "qwen3:4b-instruct"
+DEFAULT_MODEL = "qwen3:4b"
 DEFAULT_URL = "http://127.0.0.1:11434/v1"
 
 
