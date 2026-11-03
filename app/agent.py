@@ -5,10 +5,51 @@ from __future__ import annotations
 import json
 import os
 import re
+from decimal import Decimal, InvalidOperation
 from dataclasses import dataclass, field
 from typing import Any
 
 from app.tools import TOOL_SCHEMAS, StoreTools
+from app.routing import prefetch
+
+def _as_money(value: str) -> Decimal | None:
+    """Normalize BRL strings (1.680,00 / 1680.00 / 99) for grounding checks."""
+    try:
+        value = value.strip()
+        if "," in value:
+            value = value.replace(".", "").replace(",", ".")
+        elif value.count(".") == 1 and len(value.split(".")[-1]) == 3:
+            value = value.replace(".", "")
+        return Decimal(value)
+    except (ValueError, InvalidOperation):
+        return None
+
+
+def _supported_money(evidence: list[dict]) -> set[Decimal]:
+    valid: set[Decimal] = set()
+
+    def walk(obj, key=""):
+        if isinstance(obj, dict):
+            for field, value in obj.items():
+                walk(value, field)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item, key)
+        elif isinstance(obj, (str, int, float)):
+            if "brl" in key.lower() or "price" in key.lower():
+                val = _as_money(str(obj))
+                if val is not None:
+                    valid.add(val)
+            if isinstance(obj, str):
+                for item in re.findall(r"R\$\s*([\d.,]+)", obj):
+                    val = _as_money(item)
+                    if val is not None:
+                        valid.add(val)
+
+    for item in evidence:
+        walk(item)
+    return valid
+
 
 SYSTEM_PROMPT = """Você é o assistente virtual da Empório da Música, uma loja fictícia
  de instrumentos musicais em Campo Grande/MS. Converse em português brasileiro,
@@ -44,7 +85,7 @@ REGRAS DE CONFIANÇA
   se o manual estiver ambíguo; indique necessidade de confirmação humana.
 - Não use informações internas de outros pedidos para inferir status de pedidos atuais.
 
-Ao citar produtos informe os valores em BRL. Prefira respostas curtas e claras.
+Ao citar produtos informe os valores em BRL. Prefira respostas curtas e claras, de até 100 palavras. Não repita dados brutos do sistema.
 """
 
 
@@ -56,6 +97,8 @@ class Agent:
     max_tool_rounds: int = 5
     # Each user turn is an indivisible bundle: user, assistant tool calls, tools, reply.
     histories: dict[str, list[list[dict]]] = field(default_factory=dict)
+    last_products: dict[str, list[int]] = field(default_factory=dict)
+    last_prefetch: list[str] = field(default_factory=list)
 
     def ask(self, user_message: str, session_id: str = "default") -> str:
         if not isinstance(user_message, str) or not user_message.strip():
@@ -65,7 +108,18 @@ class Agent:
         prior_turns = self.histories.get(session_id, [])[-8:]
         context = [item for turn in prior_turns for item in turn]
         current: list[dict] = [{"role": "user", "content": user_message.strip()}]
-        used_tools: set[str] = set()
+        verified, selected_ids = prefetch(self.tools, user_message, self.last_products.get(session_id, []))
+        self.last_products[session_id] = selected_ids
+        self.last_prefetch = [name for name, _, _ in verified]
+        for index, (name, args, result) in enumerate(verified, 1):
+            call_id = f"precheck_{index}"
+            current.append({"role": "assistant", "content": "", "tool_calls": [{
+                "id": call_id, "type": "function", "function": {
+                    "name": name, "arguments": json.dumps(args, ensure_ascii=False)}}]})
+            current.append({"role": "tool", "tool_call_id": call_id,
+                            "content": json.dumps(result, ensure_ascii=False)})
+        used_tools: set[str] = set(self.last_prefetch)
+        tool_evidence = [result for _, _, result in verified]
         for _ in range(self.max_tool_rounds):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}, *context, *current]
             try:
@@ -89,15 +143,23 @@ class Agent:
                         result = {"error": {"code": "invalid_json", "message": "Expected JSON arguments"}}
                     else:
                         result = self.tools.execute(call.function.name, args)
+                    tool_evidence.append(result)
+                    if call.function.name == "search_products" and result.get("products"):
+                        self.last_products[session_id] = [p["product_id"] for p in result["products"]]
                     current.append({"role": "tool", "tool_call_id": call.id,
                                     "content": json.dumps(result, ensure_ascii=False)})
                 continue
             content = (reply.content or "").strip()
             if not content:
                 content = "Não consegui confirmar essa informação. Pode reformular a pergunta?"
-            # Prevent ungrounded operational currency/percent statements if NO tools were used.
-            if not used_tools and re.search(r"(?:R\$\s*\d|\b\d+(?:[,.]\d+)?\s*%)", content):
-                content = "Preciso consultar as informações da loja antes de confirmar valores ou descontos. Pode me dizer o produto ou a condição que deseja verificar?"
+            # Prevent unsupported currency amounts, even when an LLM returns an
+            # invented number after another tool was consulted.
+            prices = [_as_money(item) for item in re.findall(r"R\$\s*([\d.,]+)", content)]
+            valid_prices = _supported_money(tool_evidence)
+            if (prices and (not used_tools or any(p is not None and p not in valid_prices for p in prices))):
+                content = "Não consegui confirmar esse valor no catálogo. Pode indicar o produto exato para eu consultar?"
+            elif not used_tools and re.search(r"\b\d+(?:[,.]\d+)?\s*%", content):
+                content = "Preciso consultar as informações da loja antes de confirmar descontos."
             current.append({"role": "assistant", "content": content})
             self.histories[session_id] = (prior_turns + [current])[-8:]
             return content
