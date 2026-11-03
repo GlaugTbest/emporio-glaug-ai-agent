@@ -71,3 +71,15 @@ def test_other_customers_order_is_denied_before_model(db):
     assert "autorização declarada" in answer.lower()
     assert agent.last_answer_source == "python_privacy_rule"
     assert not fake.requests
+
+
+def test_fechar_no_pix_is_not_store_closing_hours():
+    assert plan("Se eu fechar no PIX, dá mais 5%? E em seis parcelas?", [4]) == [
+        ("calculate_payment_options", {"product_id": 4})]
+
+
+def test_budget_echo_is_not_a_hallucinated_product_price(tools):
+    fake = OneReply("Até R$ 900, você tem o Violão Demo Nylon por R$ 599,90.")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=fake))
+    response = Agent(tools, client).ask("Tenho até R$ 900 para um violão de nylon. Que opções tem?")
+    assert "599,90" in response

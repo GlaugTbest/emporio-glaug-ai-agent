@@ -28,7 +28,7 @@ def plan(message: str, product_ids: list[int]) -> list[tuple[str, dict]]:
         return [("get_order_status", {"order_id": int(match.group(1))})]
 
     policy_markers = ("devolu", "devolv", "troca", "arrepend", "garanti", "reembols", "embalagem", "caixa",
-                      "etiqueta", "horario", "abert", "fecha", "enderec", "frete",
+                      "etiqueta", "horario", "abert", "fechado", "que horas", "enderec", "frete",
                       "entrega", "whatsapp", "contato", "acessorio", "palhet", "pedal")
     product_question = "pronta entrega" in text and any(t in text for t in ("violao", "violoes", "guitarra"))
     if any(marker in text for marker in policy_markers) and not product_question:

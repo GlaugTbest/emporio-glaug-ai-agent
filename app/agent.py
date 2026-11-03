@@ -176,6 +176,9 @@ class Agent:
             # invented number after another tool was consulted.
             prices = [_as_money(item) for item in re.findall(r"R\$\s*([\d.,]+)", content)]
             valid_prices = _supported_money(tool_evidence)
+            # The customer may repeat their budget; that is not a quoted store price.
+            valid_prices.update(p for p in (_as_money(v) for v in
+                                re.findall(r"R\$\s*([\d.,]+)", user_message)) if p is not None)
             if (prices and (not used_tools or any(p is not None and p not in valid_prices for p in prices))):
                 content = "Não consegui confirmar esse valor no catálogo. Pode indicar o produto exato para eu consultar?"
                 self.last_answer_source = "python_price_guard"
