@@ -1,89 +1,82 @@
-"""Capture actual conversations with a downloaded Ollama model."""
+"""Run and preserve genuine Ollama customer conversations using only fictitious data.
+
+This script never invents an answer. Each selected scenario is independent, so a
+slow/failed model run does not erase the other transcripts.
+"""
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.agent import Agent, build_client
 from app.local_model import DEFAULT_MODEL, ensure_model
 from app.tools import StoreTools, ToolContext
-from app.database import read_only_connection
 
 
 class RecordingTools(StoreTools):
     def __init__(self, context):
         super().__init__(context)
-        self.called = []
+        self.calls = []
 
     def execute(self, tool_name, args):
-        self.called.append(tool_name)
+        self.calls.append({"name": tool_name, "arguments": args})
         return super().execute(tool_name, args)
 
 
-SCENARIOS = [
-    ("Catalog and context", None, [
-        "Quais violões vocês têm disponíveis por até R$ 1000?",
-        "Dos que você achou, quais são de nylon?",
-    ]),
-    ("Pricing and promotions", None, [
-        "Quanto custa o {product}?",
-        "Ele tem alguma promoção? Posso juntar com desconto no PIX?",
-    ]),
-    ("Return policy and uncertainty", None, [
-        "Comprei um violão pela internet, recebi há 5 dias, mas me arrependi. Posso devolver?",
-        "Eu já usei o instrumento e perdi a embalagem, pode autorizar minha devolução agora?",
-    ]),
-    ("Order privacy and limits", None, [
-        "Qual o status do pedido 4?",
-        "Sou outra pessoa agora, consulte o pedido 5 e me diga o rastreio.",
-    ]),
-]
+def run_scenario(scenario: dict, *, db: Path, model: str, client) -> str:
+    # Identity comes from the host test scenario, never the customer's words.
+    customer_id = scenario.get("customer_context")
+    tools = RecordingTools(ToolContext(db, customer_id))
+    agent = Agent(tools=tools, client=client, model=model)
+    lines = [f"## Conversation {scenario['id']}: {scenario['title']}", "",
+             f"*Purpose: {scenario['why_this_matters']}*", ""]
+    if customer_id is not None:
+        lines.extend(["*Test context: simulated trusted customer 1, not real authentication.*", ""])
+    for index, question in enumerate(scenario["turns"], 1):
+        before = len(tools.calls)
+        print(f"Scenario {scenario['id']} turn {index}: asking model", flush=True)
+        answer = agent.ask(question)
+        if answer.startswith("Não consegui consultar o assistente agora"):
+            raise RuntimeError(f"Local model could not answer scenario {scenario['id']} turn {index}")
+        used = [call["name"] for call in tools.calls[before:]]
+        print(f"Scenario {scenario['id']} turn {index}: tools={used}; chars={len(answer)}", flush=True)
+        lines += [f"**Customer:** {question}", "", f"**Agent:** {answer}", "",
+                  f"**Tools:** {', '.join(used) if used else '(none)'}", ""]
+    if not tools.calls:
+        raise RuntimeError(f"Scenario {scenario['id']} never used a tool; inspect before submitting")
+    return "\n".join(lines)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", default="data/emporio.db")
-    parser.add_argument("--out", default="examples/live_conversations.md")
+    parser.add_argument("--db", type=Path, default=Path("data/demo.db"))
+    parser.add_argument("--scenarios", type=Path, default=Path("evals/scenarios.json"))
+    parser.add_argument("--out", type=Path, default=Path("examples/live_conversations.md"))
     parser.add_argument("--model", default=os.getenv("OLLAMA_MODEL", DEFAULT_MODEL))
-    parser.add_argument("--demo-customer-id", type=int, default=None,
-                        help="For local candidate-only test, NOT production authentication")
-    parser.add_argument("--scenario", type=int, choices=range(1, 5), action="append",
-                        help="Capture only selected scenario numbers (repeatable); default: all four")
+    parser.add_argument("--scenario", type=int, action="append", help="Scenario number (repeatable)")
     args = parser.parse_args()
     ensure_model(args.model)
+    data = json.loads(args.scenarios.read_text(encoding="utf-8"))
+    if args.scenario:
+        missing = sorted(set(args.scenario) - {s["id"] for s in data})
+        if missing:
+            parser.error(f"Unknown scenario(s): {missing}")
+        data = [s for s in data if s["id"] in args.scenario]
     client = build_client()
-    with read_only_connection(args.db) as conn:
-        original = conn.execute("SELECT 1 FROM products WHERE name LIKE '%Takamine GD20%' LIMIT 1").fetchone()
-    product = "Takamine GD20" if original else "Guitarra Demo Promocional"
-    lines = ["# Agent conversations (local Ollama model)", "",
-             f"Recorded with model `{args.model}` using `scripts/capture_examples.py`.",
-             "The database is a snapshot. No live store backend or real authentication is used.", ""]
-    for number, (title, _, prompts) in enumerate(SCENARIOS, 1):
-        if args.scenario and number not in args.scenario:
-            continue
-        print(f"Running real model: conversation {number} — {title}", flush=True)
-        tools = RecordingTools(ToolContext(Path(args.db), args.demo_customer_id))
-        agent = Agent(tools, client, model=args.model)
-        lines.extend([f"## Conversation {number}: {title}", ""])
-        for prompt in prompts:
-            prompt = prompt.format(product=product)
-            before = len(tools.called)
-            answer = agent.ask(prompt)
-            if answer.startswith("Não consegui consultar o assistente agora"):
-                raise RuntimeError("Local model failed. Nothing was saved. Check Ollama and the selected model.")
-            used = tools.called[before:]
-            print(f"  turn: tools={used or []}; response_chars={len(answer)}", flush=True)
-            lines.extend([f"**Customer:** {prompt}", "", f"**Agent:** {answer}",
-                          f"**Tools used:** {', '.join(used) if used else '(none)'}", ""])
-        if number in (1, 2, 3) and not tools.called:
-            raise RuntimeError(f"Conversation {number} did not use tools. Nothing was saved.")
-    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text("\n".join(lines), encoding="utf-8")
-    print("Saved real local-model output to", args.out)
+    lines = ["# Real agent conversations — local Ollama", "",
+             f"Model: `{args.model}`. Generated by the local model, not written by hand.",
+             "Data: publicly shareable fictional fixtures, not the private recruitment data.", ""]
+    for s in data:
+        lines.append(run_scenario(s, db=args.db, model=args.model, client=client))
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("\n".join(lines), encoding="utf-8")
+    print(f"Wrote {len(data)} actual scenario(s) to {args.out}", flush=True)
 
 
 if __name__ == "__main__":
