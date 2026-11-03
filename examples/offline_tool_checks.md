@@ -2,7 +2,7 @@
 
 Produced by actual execution of the deterministic tools against synthetic fixture data.
 This is **not** evidence of calls to a language model. To capture four real agent
-conversations, run `python scripts/capture_examples.py` with an API key.
+conversations, start Ollama locally and run `python scripts/capture_examples.py` with the free `qwen3:4b-instruct` model installed.
 
 ## Scenario 1 - Catalog with a follow-up
 
