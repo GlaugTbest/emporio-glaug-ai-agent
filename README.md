@@ -58,7 +58,12 @@ The manual has conflicting contact details and overlapping parcel minimums. The 
 
 `pytest` covers imports, stock, SQL/tool validation, discounts, policy retrieval, conversation memory, incorrect model-generated amounts and access control. The repository includes synthetic fixtures so the standard suite is reproducible; additional checks using the original materials are optional and local-only (`ARTEFACT_SOURCE_DIR` and `ARTEFACT_POLICY_PDF`).
 
-The four scenarios in `evals/scenarios.json` cover a beginner's budget, a promotion with PIX/instalments, a return with missing packaging, and an order request involving another customer's data. `capture_examples.py` saves **actual model output**, including which tools were used, to Markdown. It does not fabricate a conversation when a run fails. You can reproduce a single case with `--scenario 3 --out examples/my_test.md`.
+The four scenarios in `evals/scenarios.json` cover a beginner's budget, a promotion with PIX/instalments, a return with missing packaging, and an order request involving another customer's data.
+
+**Verified demonstration:** The [real Qwen3 GitHub Actions run](https://github.com/GlaugTbest/emporio-glaug-ai-agent/actions/runs/41721596429) completed all four two-turn conversations using only public fictional fixtures. The recorded outputs are in [`examples/live_conversation_1.md`](examples/live_conversation_1.md), [`2.md`](examples/live_conversation_2.md), [`3.md`](examples/live_conversation_3.md), and [`4.md`](examples/live_conversation_4.md). Matching evaluation evidence is in `evals/live_result_1.json` through `live_result_4.json` (one representative case per scenario, all four passed). Each transcript identifies its tools and whether the reply came directly from the model or a deterministic Python safety rule. A passed scripted evaluation does not guarantee that all possible conversation variations are accurate.
+
+The public deterministic suite passed **37 tests**, with **6 private-data-only checks skipped**. Supplying the original ZIP locally lets those checks run too (**43 passed** with the original challenge files). The sensitive inputs are not required for the public demonstration.
+ `capture_examples.py` saves **actual model output**, including which tools were used, to Markdown. It does not fabricate a conversation when a run fails. You can reproduce a single case with `--scenario 3 --out examples/my_test.md`.
 
 `run_evals.py` separately checks expected tools, factual markers and forbidden claims. These checks are useful but not a substitute for manually reviewing the transcript. A scripted HTTP test verifies that the code can communicate with Ollama; it is explicitly not counted as a real-model evaluation.
 
@@ -70,4 +75,4 @@ This is a read-only prototype. It cannot make purchases, reserve stock, issue re
 
 ## AI-assisted development
 
-I used ChatGPT for code drafting, reviewing the supplied documents, writing test cases and investigating the Ollama integration. Tests exposed several issues in the initial version, including model responses without tool calls and unsupported prices; those led to the deterministic guardrails above. I reviewed the resulting code and test outputs against the provided materials. In particular, mocked tests are not presented as proof that a real language model answered correctly.
+I used ChatGPT for code drafting, reviewing the supplied documents, writing test cases and investigating the Ollama integration. Tests exposed several issues in the initial version, including model responses without tool calls and unsupported prices; those led to the deterministic guardrails above. The code and test outputs were checked against the supplied materials. In particular, mocked tests are not presented as proof that a real language model answered correctly.
