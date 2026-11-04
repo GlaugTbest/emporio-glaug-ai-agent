@@ -1,78 +1,114 @@
-# Empório da Música — customer service agent
+# Empório da Música - agente de atendimento
 
-A small Python agent built for the Artefact AI Engineer challenge. It answers customer messages in Portuguese using a product catalog, order records and a store policy document. It can explain an answer, but it cannot place an order or promise that a return has been approved.
+Protótipo em Python para o desafio de AI Engineer da Artefact. Consulta catálogo, pedidos e políticas por uma CLI em português, com Ollama local. É um sistema de leitura: não compra, não reserva, não emite etiquetas e não decide aprovações de devolução.
 
-The app runs on a computer with Ollama. There is no account, paid LLM API, or hosted service.
+## A ideia em três passos
 
-## Run it
+1. **Interpretar:** Python antecipa consultas evidentes e o LLM seleciona ferramentas para a mensagem e seu contexto. Há no máximo uma chamada de planejamento ao modelo por turno, com até seis ferramentas.
+2. **Consultar:** funções Python permitidas leem SQLite, verificam o titular do pedido e calculam valores com `Decimal`.
+3. **Responder:** Python formata os resultados reais. **O texto livre do LLM não é mostrado ao cliente.** Isso impede que um preço inventado, uma porcentagem ou uma ação alegada pelo modelo substituam os fatos consultados.
 
-You need Python 3.11 or newer and [Ollama](https://ollama.com/download). The recommended model is `qwen3:4b-instruct` (about 2.5 GB). It is a free download; unlike the thinking-oriented `qwen3:4b` tag, it is intended to give direct responses without exposing intermediate reasoning.
+Não é uma garantia universal de correção: o modelo e as regras de interpretação ainda podem entender uma intenção incorretamente. Por isso há filtros explícitos, pedidos de esclarecimento e avaliações de produto, argumentos e resposta. As evidências identificam chamadas do modelo, falhas e a origem de cada resposta.
 
-On Windows PowerShell, from a clone of this repository:
+## Rodar no Windows
+
+Requisitos: Python 3.11 ou posterior e [Ollama](https://ollama.com/download). Mantenha o Ollama aberto. O modelo `qwen3:4b-instruct` ocupa aproximadamente 2,5 GB em disco; é gratuito e funciona em CPU, mas pode demorar em máquinas com pouca memória. O download é necessário uma vez. Depois, as mensagens ficam no computador.
+
+Execute na pasta do projeto:
 
 ```powershell
 ollama pull qwen3:4b-instruct
 py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
-.\.venv\Scripts\python.exe scripts/check_local.py --model qwen3:4b-instruct
+.\.venv\Scripts\python.exe scripts/check_local.py
 .\.venv\Scripts\python.exe main.py --db data/demo.db
 ```
 
-Keep the Ollama desktop app running. If necessary, start `ollama serve` in a different terminal. After the model is downloaded, inference runs on your computer without sending customer messages to a cloud LLM. CPU-only inference is supported but can be slow.
+Pergunte: `Quero um violão de nylon até R$ 900.` Depois: `E a Guitarra Demo Promocional no PIX e em seis parcelas?` Digite `sair` para encerrar. Por padrão, não há cliente autenticado e consultas de pedidos são recusadas. **Somente com dados fictícios**, `--demo-customer-id 1` simula a identidade definida pelo anfitrião; não é autenticação real.
 
-Try asking: *"Estou começando a tocar violão e tenho até R$ 900. O que você tem disponível?"* Then ask a follow-up without repeating the budget. Type `sair` to quit.
+### Linux e macOS
 
-### Run it with the assignment's original data
+Os mesmos comandos funcionam substituindo `py -3` por `python3` e `.\.venv\Scripts\python.exe` por `.venv/bin/python`. Se o Ollama não responder, abra seu aplicativo ou execute `ollama serve` em outro terminal. `scripts/check_local.py` verifica serviço e modelo sem fazer inferência.
 
-The recruitment materials contain an internal policy manual and customer data, so they are **not redistributed** in this public repository. The original ZIP can be imported locally without copying its contents into Git:
+O projeto não carrega `.env` automaticamente. As variáveis opcionais são `OLLAMA_MODEL` e `OLLAMA_BASE_URL`; esta última aceita apenas HTTP de loopback com `/v1`. O transporte ignora proxies e recusa redirecionamentos. Cada chamada ao modelo tem limite de 120 segundos; o agente pode devolver fatos já consultados se o modelo falhar, mas uma avaliação real não conta esse fallback como sucesso do LLM.
+
+## Usar os materiais originais sem publicá-los
+
+O catálogo e os clientes de `fixtures/` são **fictícios**. As políticas de demonstração também são fictícias e não substituem o manual fornecido no desafio. Não redistribuímos os clientes, o ZIP ou o PDF interno.
+
+Com o ZIP original:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/import_challenge_zip.py "C:\path\to\Desafio_Tecnico_AI_Engineer.zip" --db data/emporio.db
+.\.venv\Scripts\python.exe scripts/import_challenge_zip.py "C:\materiais\desafio.zip" --db data/emporio.db
 .\.venv\Scripts\python.exe main.py --db data/emporio.db
 ```
 
-The import script locates the six CSVs and the PDF, reads their content into a local SQLite database, and removes its temporary extracted copy. `data/*.db` is ignored by Git. The `fixtures/` folder contains deliberately fictional sample records; they are not the real customers.
-
-## Why this design
-
-I kept the application close to the assignment. A CLI is enough to demonstrate the agent, and Python's standard library plus `pypdf` cover the data and model integration.
-
-- **Local LLM:** Qwen3 4B Instruct runs through Ollama's native `/api/chat` endpoint, with short responses and thinking disabled. No API keys or paid provider SDKs.
-- **Tools and business rules:** The model can request product, promotion, policy or order data. Python owns the queries, discount calculations and authorization checks; the model never writes SQL. Because small models sometimes skip tool calls, straightforward intents also have a short deterministic prefetch step before generation. The prefetch is deliberate routing, not an LLM-selected tool call.
-- **Data:** The six CSVs are loaded into SQLite with schema and relationship checks. Catalog results only label a product available when it is active **and** has positive stock. Order records and promotions are historical snapshots, not live integrations.
-- **Policy retrieval:** The provided PDF is split into searchable pages with normalized terms. This is easier to explain and maintain than embeddings for a short manual, although unusual paraphrases can still be missed.
-- **Conversation context:** The latest eight turns are kept in memory for follow-up questions. The user session is not persisted after exiting.
-
-Orders can only be read for a customer ID supplied by a trusted host. The CLI option `--demo-customer-id 1` simulates such a host **for local testing only**; it is not authentication and must not be used on a publicly reachable service. An ID or authorization asserted by the customer in chat never changes the session's identity.
-
-The manual has conflicting contact details and overlapping parcel minimums. The agent should acknowledge ambiguity instead of inventing a definitive answer. Promotions are not cumulative with each other or with PIX discounts, and the promotion CSV has no expiry dates to infer.
-
-## Tests and demonstration
+Ou com os seis CSVs em uma pasta dedicada e o manual separado:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe scripts/capture_examples.py --db data/demo.db
-.\.venv\Scripts\python.exe scripts/run_evals.py --db data/demo.db
+.\.venv\Scripts\python.exe scripts/prepare_data.py --source-dir "C:\materiais\csvs" --manual "C:\materiais\politicas_da_loja.pdf" --db data/emporio.db
 ```
 
-`pytest` covers imports, stock, SQL/tool validation, discounts, policy retrieval, conversation memory, incorrect model-generated amounts and access control. The repository includes synthetic fixtures so the standard suite is reproducible; additional checks using the original materials are optional and local-only (`ARTEFACT_SOURCE_DIR` and `ARTEFACT_POLICY_PDF`).
+A pasta deve conter exatamente uma cópia de cada tabela: `categories`, `products`, `customers`, `orders`, `order_items` e `promotions`, com os cabeçalhos do desafio. O importador aceita `products.csv` e nomes terminados em ` - products.csv`. Não aponte para todo o diretório temporário do Windows, que pode conter cópias duplicadas.
 
-The four scenarios in `evals/scenarios.json` cover a beginner's budget, a promotion with PIX/instalments, a return with missing packaging, and an order request involving another customer's data.
+A importação valida colunas, valores e relacionamentos, fecha as conexões e só substitui o banco ao terminar com sucesso. Temporários têm nomes únicos e são ignorados pelo Git. **Os scripts de avaliações e gravações públicas recusam qualquer banco que difira das fixtures e políticas fictícias**, inclusive alterações nos clientes.
 
-**Verified demonstration:** The [real Qwen3 GitHub Actions run](https://github.com/GlaugTbest/emporio-glaug-ai-agent/actions/runs/41721596429) completed all four two-turn conversations using only public fictional fixtures. The recorded outputs are in [`examples/live_conversation_1.md`](examples/live_conversation_1.md), [`2.md`](examples/live_conversation_2.md), [`3.md`](examples/live_conversation_3.md), and [`4.md`](examples/live_conversation_4.md). Matching evaluation evidence is in `evals/live_result_1.json` through `live_result_4.json` (one representative case per scenario, all four passed). Each transcript identifies its tools and whether the reply came directly from the model or a deterministic Python safety rule. A passed scripted evaluation does not guarantee that all possible conversation variations are accurate.
+## Verificar
 
-The public deterministic suite passed **37 tests**, with **6 private-data-only checks skipped**. Supplying the original ZIP locally lets those checks run too (**43 passed** with the original challenge files). The sensitive inputs are not required for the public demonstration.
- `capture_examples.py` saves **actual model output**, including which tools were used, to Markdown. It does not fabricate a conversation when a run fails. You can reproduce a single case with `--scenario 3 --out examples/my_test.md`.
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m pip_audit
+.\.venv\Scripts\python.exe scripts/run_evals.py --db data/demo.db --output evals/live_results.json
+.\.venv\Scripts\python.exe scripts/capture_examples.py --db data/demo.db --from-evals evals/live_results.json --out-dir examples
+```
 
-`run_evals.py` separately checks expected tools, factual markers and forbidden claims. These checks are useful but not a substitute for manually reviewing the transcript. A scripted HTTP test verifies that the code can communicate with Ollama; it is explicitly not counted as a real-model evaluation.
+`requirements.txt` contém só a dependência de execução. `requirements-dev.txt` declara as ferramentas de desenvolvimento; `requirements-dev.lock` fixa também suas dependências transitivas. Atualizações exigem testes e nova auditoria, não apenas editar um número de versão.
 
-The GitHub Actions workflows run the deterministic tests and, separately, attempt real-model conversations with only fictional fixtures on temporary Linux runners. The CI artifacts contain model outputs when a scenario completes; inspect the run result before relying on them as evidence.
+`pytest` é determinístico: usa ferramentas reais e respostas controladas onde não precisamos testar o LLM. O teste HTTP usa um servidor de loopback e não é apresentado como inferência real. Para incluir os seis testes opcionais do desafio original, defina `ARTEFACT_SOURCE_DIR` e `ARTEFACT_POLICY_PDF` no terminal; os arquivos continuam locais.
 
-## What it does not do
+`run_evals.py` faz inferência real, mantém o contexto entre casos da mesma sessão e verifica ferramenta, argumentos relevantes, produtos, valores exibidos, políticas e alegações proibidas. Falha do modelo não vira aprovação. Os casos de autorização e bloqueio de dados internos podem usar zero chamadas ao LLM, explicitamente registrados.
 
-This is a read-only prototype. It cannot make purchases, reserve stock, issue refunds, open support tickets, authenticate customers or track deliveries in real time. Production would require a real authentication provider, integrations to current store systems, more policy-retrieval tests and a larger evaluated conversation set. A web interface could be added, but it is not required by the assignment and would add deployment and maintenance work without improving the current agent.
+`capture_examples.py --from-evals` exporta **os mesmos turnos** já avaliados, conferindo pergunta, modelo, sucesso e identidade de demonstração. Assim não confunde uma conversa com outra inferência. Sem essa opção, ele executa novas conversas reais. Nunca fabrica uma resposta para substituir uma falha.
 
-## AI-assisted development
+## Demonstrações e aderência ao desafio
 
-I used ChatGPT for code drafting, reviewing the supplied documents, writing test cases and investigating the Ollama integration. Tests exposed several issues in the initial version, including model responses without tool calls and unsupported prices; those led to the deterministic guardrails above. The code and test outputs were checked against the supplied materials. In particular, mocked tests are not presented as proof that a real language model answered correctly.
+Há cinco conversas em `examples/live_conversation_1.md` a `live_conversation_5.md`: orçamento e mudança de produto; promoção e PIX; devolução; pedido e privacidade; horários e assunto fora do escopo. Os resultados completos ficam em `evals/live_results.json`; [o registro de verificação](docs/verification.md) informa ambiente, resultados e limites. São amostras, não uma taxa geral de precisão.
+
+| Pedido do desafio | Como demonstramos |
+|---|---|
+| Python e agente de texto com persona | CLI, prompt em português e respostas da Empório da Música |
+| Contexto e escolha entre dados e políticas | Ferramentas separadas, filtros persistidos, resolução do produto e páginas do manual |
+| Perguntas fora do escopo | Caso real de futebol e recusa restrita ao atendimento da loja |
+| Três a cinco conversas e caso não trivial | Cinco conversas; descontos não cumulativos, parcelas, política e privacidade |
+| README e transparência de decisões/IA | Este documento e o histórico incremental de correções |
+
+A CI determinística cobre Windows e Linux, Python 3.11 e 3.13. A CI de Ollama executa cinco cenários e distribui todos os casos de avaliação em runners Linux temporários. A instalação do Ollama no runner vem do script oficial; seu binário e as tags de modelo/Actions não estão fixados por digest, portanto a reprodução não é byte a byte. Nenhuma execução futura da CI é presumida bem-sucedida: veja o resultado do run.
+
+## Decisões e suposições
+
+- **Sem framework de agentes:** funções pequenas e biblioteca padrão bastam para as seis ferramentas; isso deixa autorização, cálculos e fluxo visíveis. O único pacote de execução é `pypdf`, para importar o manual.
+- **Ollama/Qwen3 4B Instruct:** evita contas, chaves e cobrança por API. O compromisso é a latência e memória locais. A configuração usa temperatura zero, geração limitada e uma chamada de planejamento por turno; nenhuma cadeia de raciocínio é publicada.
+- **Prompt:** define persona informal e profissional, escopo, ferramenta para cada tipo de dúvida e distinção entre dados e instruções. O prompt ajuda a interpretar; não é a barreira de segurança. Identidade, consultas, preços e resposta final ficam em Python.
+- **SQLite:** snapshot local com relacionamentos validados e consultas de leitura parametrizadas. O modelo nunca recebe uma ferramenta para executar SQL ou ler a tabela de clientes.
+- **Busca lexical de políticas:** páginas e termos normalizados funcionam para um manual curto e são fáceis de inspecionar. A resposta apresenta trechos curtos relevantes com página; evita uma paráfrase inventada e não exibe o manual inteiro. Uma busca pode perder uma formulação incomum.
+- **Conflitos do manual:** se há telefones divergentes, o agente pede confirmação do canal oficial. Nos cálculos de parcelas, adotamos a tabela específica: 1-3x com mínimo de R$ 50, 4-6x R$ 80 e 7-12x R$ 100, em vez do mínimo geral de R$ 100. A resposta identifica essa escolha e orienta confirmação humana.
+- **Devolução:** o agente mostra o que o material diz e encaminha a avaliação de embalagem e sinais de uso ao atendimento humano. Não aprova nem nega automaticamente, não emite etiqueta e não interpreta o manual como parecer jurídico.
+- **Contexto:** até oito turnos por sessão, com redução do histórico enviado ao modelo; não persiste depois de sair. Mantém orçamento/material ao refinar a mesma categoria, mas uma referência explícita a outro produto inicia nova seleção. Vários produtos possíveis exigem identificação antes do cálculo.
+- **Promoções e pedidos:** registros históricos, sem validade de campanha ou posição atual da transportadora inferida. Promoções não se acumulam entre si nem com PIX.
+
+## Limitações e próximos passos
+
+Não há autenticação de produção, integração com transportadora, estoque ao vivo, pagamentos, tickets ou registro de reclamações. A possibilidade descrita no manual de registrar e encaminhar reclamações é uma limitação documentada deste protótipo; ele pode orientar o contato humano e não afirmar que registrou.
+
+As proteções não tornam a interpretação de linguagem infalível. Há vocabulário e regras explícitas no prefetch, uma seleção limitada de ferramentas e busca lexical; pedidos ambíguos podem precisar de esclarecimento. Nomes e textos do catálogo/manual continuam sendo dados locais que devem vir de fonte confiável. Em uma evolução, ampliaria casos avaliados, testes de atualização de políticas, autenticação real e integrações de atendimento, antes de acrescentar uma interface web.
+
+## Uso de IA no desenvolvimento
+
+Usei ChatGPT/Codex para auditoria do enunciado e código, elaboração de regressões, investigação de falhas do SQLite no Windows, mudanças de implementação e documentação. A auditoria encontrou preços que não correspondiam ao produto, mistura de contexto, avaliações permissivas e demonstrações parcialmente adequadas. As correções foram acompanhadas de testes que primeiro reproduziram as falhas, depois passaram.
+
+As decisões continuam explícitas no código e neste README. Testes com cliente falso não são prova do comportamento do modelo; demonstrações reais informam modelo, número de chamadas, duração, origem da resposta e falhas. Não publico os materiais privados do processo.

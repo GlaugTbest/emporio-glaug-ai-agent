@@ -1,24 +1,30 @@
-# Real agent conversations — local Ollama
+# Verified local agent conversations
 
-Model: `qwen3:4b-instruct`. Captured during real local inference; individual answers may be model text or Python safety guards.
-Data: publicly shareable fictional fixtures, not the private recruitment data.
+Model: `qwen3:4b-instruct`. Ollama interprets requests and selects tools; Python formats all factual replies. A privacy denial may use zero model calls. Model prose is never published.
+Data: exact fictional public fixtures. No private challenge data.
 
-## Conversation 1: Choosing a first instrument within a budget
+## Conversation 1: Budget, nylon and changing instruments
 
-*Purpose: Catalog availability, budget, product specifications and conversational context*
+*Purpose: Preserve customer filters, then resolve the new product before calculating PIX and installments.*
 
-**Customer:** Oi! Estou começando a aprender violão. Tenho até R$ 900 e queria um de nylon. Quais vocês têm para pronta entrega?
+**Customer:** Tenho até R$ 900 para um violão de nylon. Quais estão disponíveis?
 
-**Agent:** Dentro de R$ 900, encontrei estas opções disponíveis: Violão Demo Nylon: R$ 599,90 (5 em estoque); Violão Demo Aço: R$ 849,00 (2 em estoque). Se você prefere nylon, posso conferir as especificações de cada uma.
+**Agent:** Encontrei estas informações:
+- Violão Demo Nylon: R$ 599,90; 5 em estoque.
+Valores e disponibilidade são do catálogo local, sem atualização em tempo real.
 
-**Tools:** search_products, get_product_details, get_product_details
+**Tools:** search_products, get_product_details
 
-**Response source:** python_budget_guard
+**Response source:** python_verified_facts
 
-**Customer:** E desses, qual é de nylon mesmo? Tem no estoque ou preciso encomendar?
+**Model planning calls:** 1; **model error:** False; **seconds:** 38.59
 
-**Agent:** O violão de nylon é o **Violão Demo Nylon**, com preço de R$ 599,90 e 5 unidades em estoque. Está disponível para pronta entrega. É ideal para iniciantes!
+**Customer:** E a Guitarra Demo Promocional no PIX e em seis parcelas?
 
-**Tools:** get_product_details, get_product_details
+**Agent:** Guitarra Demo Promocional: preço de tabela R$ 2.100,00; preço de compra R$ 1.680,00. No PIX: R$ 1.680,00. Promoção de 20%; não acumula mais 5% no PIX. Em 6 parcelas sem juros: R$ 280,00 (total R$ 1.680,00). O cálculo usa a tabela específica de parcelas; confirme as condições com o atendimento humano. Valores e disponibilidade são do catálogo local, sem atualização em tempo real.
 
-**Response source:** model
+**Tools:** search_products, calculate_payment_options
+
+**Response source:** python_verified_facts
+
+**Model planning calls:** 1; **model error:** False; **seconds:** 80.56

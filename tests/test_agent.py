@@ -39,8 +39,8 @@ def test_full_multiturn_flow_with_real_tools(tools):
     second = agent.ask("E o primeiro é de nylon?")
     assert "599,90" in first
     assert "nylon" in second
-    assert len(fake.requests) == 4
-    second_turn_messages = fake.requests[2]["messages"]
+    assert len(fake.requests) == 2  # One planning call per turn; Python renders facts.
+    second_turn_messages = fake.requests[1]["messages"]
     assert any(m["role"] == "tool" and "Violão Demo Nylon" in m["content"] for m in second_turn_messages)
     assert any(m["role"] == "user" and "até 1000" in m["content"] for m in second_turn_messages)
 

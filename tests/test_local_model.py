@@ -3,6 +3,7 @@
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
+from contextlib import contextmanager
 
 import pytest
 
@@ -75,7 +76,8 @@ def test_local_http_transport_tools_and_preflight(tools):
             ensure_model("missing:model", endpoint)
         result = Agent(tools, build_client(endpoint), model="demo:local").ask("Violões até 1000?")
         assert "599,90" in result
-        assert len(seen) == 2
+        assert len(seen) == 1
+        assert any(m["role"] == "tool" and m["tool_name"] == "search_products" for m in seen[0]["messages"])
         assert seen[0]["think"] is False
         assert seen[0]["options"]["num_predict"] <= 300
         assert seen[0]["tools"]
@@ -83,3 +85,45 @@ def test_local_http_transport_tools_and_preflight(tools):
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+@contextmanager
+def inventory_server(body, redirect=False):
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            if redirect and self.path == "/api/tags":
+                self.send_response(302)
+                self.send_header("Location", "/destination")
+                self.end_headers()
+                return
+            payload = json.dumps(body).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}/v1"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_loopback_request_does_not_follow_redirects():
+    with inventory_server({"models": []}, redirect=True) as endpoint:
+        with pytest.raises(RuntimeError):
+            installed_models(endpoint)
+
+
+@pytest.mark.parametrize("body", [[], {"models": [None]}, {"models": "invalid"}])
+def test_malformed_inventory_has_controlled_preflight_error(body):
+    with inventory_server(body) as endpoint:
+        with pytest.raises(RuntimeError):
+            installed_models(endpoint)

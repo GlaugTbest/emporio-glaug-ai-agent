@@ -1,20 +1,21 @@
-name: Real Qwen3 conversations
-
+name: Verified Qwen3 conversations
 on:
   workflow_dispatch:
   push:
     paths:
       - '.github/workflows/local-model-smoke.yml'
-      - 'app/local_client.py'
-      - 'app/agent.py'
-      - 'app/routing.py'
-      - 'app/tools.py'
+      - 'app/**'
+      - 'evals/cases.json'
       - 'evals/scenarios.json'
+      - 'fixtures/**'
       - 'scripts/capture_examples.py'
-
+      - 'scripts/run_evals.py'
+      - 'requirements*.txt'
+permissions:
+  contents: read
 jobs:
   conversation:
-    name: Real Qwen3 scenario ${{ matrix.scenario }}
+    name: Qwen3 scenario ${{ matrix.scenario }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -22,21 +23,22 @@ jobs:
       matrix:
         include:
           - scenario: 1
-            evaluation: budget_900
+            cases: '--case product_budget --case product_context --case budget_900 --case switch_product'
           - scenario: 2
-            evaluation: promotion
+            cases: '--case promotion --case payment_followup'
           - scenario: 3
-            evaluation: return
+            cases: '--case return --case return_action'
           - scenario: 4
-            evaluation: order_private
+            cases: '--case order_owned --case order_private --case prompt_injection'
+          - scenario: 5
+            cases: '--case store_hours --case off_topic --case named_price'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt
-      - name: Install Ollama locally on the temporary runner
+      - run: python -m pip install -r requirements.txt
+      - name: Install Ollama on temporary runner
         run: curl -fsSL https://ollama.com/install.sh | sh
       - name: Start Ollama
         run: |
@@ -45,19 +47,15 @@ jobs:
             if curl -fsS http://127.0.0.1:11434/api/tags > /dev/null; then exit 0; fi
             sleep 2
           done
-          cat "$RUNNER_TEMP/ollama.log"
           exit 1
-      - name: Download free Qwen3 4B to the runner
-        run: ollama pull qwen3:4b-instruct
-      - name: Create database from public fictional fixtures
-        run: python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
-      - name: Capture genuine multi-turn conversation
-        run: python scripts/capture_examples.py --db data/demo.db --scenario ${{ matrix.scenario }} --out examples/live_conversation_${{ matrix.scenario }}.md
-      - name: Evaluate one representative question
-        run: python scripts/run_evals.py --db data/demo.db --case ${{ matrix.evaluation }} --output evals/live_result_${{ matrix.scenario }}.json
-      - name: Publish only fictional transcripts and evaluation results
+      - run: ollama pull qwen3:4b-instruct
+      - run: python scripts/prepare_data.py --source-dir fixtures --policy-json fixtures/demo_policies.json --db data/demo.db
+      - name: Evaluate exact cases, including arguments and product identity
+        run: python scripts/run_evals.py --db data/demo.db ${{ matrix.cases }} --output evals/live_result_${{ matrix.scenario }}.json
+      - name: Export the same real turns without duplicate inference
+        run: python scripts/capture_examples.py --db data/demo.db --scenario ${{ matrix.scenario }} --from-evals evals/live_result_${{ matrix.scenario }}.json --out examples/live_conversation_${{ matrix.scenario }}.md
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: qwen3-scenario-${{ matrix.scenario }}
           if-no-files-found: warn

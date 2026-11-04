@@ -73,14 +73,18 @@ def plan(message: str, product_ids: list[int]) -> list[tuple[str, dict]]:
 def prefetch(tools: StoreTools, message: str, product_ids: list[int], filters: dict | None = None):
     records = []
     ids = product_ids.copy()
-    for name, args in plan(message, product_ids):
+    text = fold(message)
+    if "primeiro" in text:
+        ids = ids[:1]
+    elif "segundo" in text:
+        ids = ids[1:2]
+    for name, args in plan(message, ids):
         if name == "search_products" and filters:
             args = {**args, **filters}
         result = tools.execute(name, args)
         records.append((name, args, result))
         if name == "search_products":
             ids = [item["product_id"] for item in result.get("products", [])]
-    text = fold(message)
     fresh_search = any(name == "search_products" for name, _, _ in records)
     if fresh_search and any(term in text for term in ("nylon", "aco")):
         for pid in ids[:3]:
@@ -91,4 +95,3 @@ def prefetch(tools: StoreTools, message: str, product_ids: list[int], filters: d
         args = {"product_id": ids[0]}
         records.append((name, args, tools.execute(name, args)))
     return records, ids
-

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
-from urllib.request import Request, urlopen
 
-from app.local_model import local_base_url
+from app.local_model import local_base_url, local_json
 
 
 class _Completions:
@@ -39,26 +38,25 @@ class _Completions:
 
     def create(self, *, model: str, messages: list[dict], tools: list[dict],
                temperature: float = 0.1):
-        payload = json.dumps({
+        payload = {
             "model": model,
             "messages": self._native_messages(messages),
             "tools": tools,
             "think": False,
             "stream": False,
             "keep_alive": "15m",
-            "options": {"temperature": temperature, "num_predict": 280, "num_ctx": 4096},
-        }, ensure_ascii=False).encode("utf-8")
-        # local_base_url explicitly forbids any non-loopback host.
-        endpoint = self.base_url[:-3].rstrip("/") + "/api/chat"
-        request = Request(endpoint, data=payload,
-                          headers={"Content-Type": "application/json"}, method="POST")
-        with urlopen(request, timeout=300) as response:
-            data = json.load(response)
+            "options": {"temperature": temperature, "num_predict": 160, "num_ctx": 4096},
+        }
+        data = local_json(self.base_url, "chat", payload)
         message = data["message"]
+        if not isinstance(message, dict) or not isinstance(message.get("tool_calls", []), list):
+            raise ValueError("Malformed local model message")
         calls = []
         for index, call in enumerate(message.get("tool_calls") or [], 1):
             fn = call["function"]
             args = fn.get("arguments") or {}
+            if not isinstance(fn.get("name"), str) or not isinstance(args, dict):
+                raise ValueError("Malformed local model tool call")
             calls.append(SimpleNamespace(
                 id=f"ollama_{index}",
                 function=SimpleNamespace(name=fn["name"], arguments=json.dumps(args, ensure_ascii=False)),

@@ -1,26 +1,28 @@
-# Real agent conversations — local Ollama
+# Verified local agent conversations
 
-Model: `qwen3:4b-instruct`. Captured during real local inference; individual answers may be model text or Python safety guards.
-Data: publicly shareable fictional fixtures, not the private recruitment data.
+Model: `qwen3:4b-instruct`. Ollama interprets requests and selects tools; Python formats all factual replies. A privacy denial may use zero model calls. Model prose is never published.
+Data: exact fictional public fixtures. No private challenge data.
 
-## Conversation 2: Promotion, PIX and instalments
+## Conversation 2: Promotion without stacking PIX
 
-*Purpose: Catalog, active promotion and non-stacking payment rules*
+*Purpose: Verify original price, discount, final price and exact installment total.*
 
-**Customer:** Vi uma guitarra no catálogo por volta de R$ 2.100. Ela está com algum desconto?
+**Customer:** A Guitarra Demo Promocional está em promoção?
 
-**Agent:** Sim, a guitarra está com desconto! A **Guitarra Demo Promocional** está com **20% de desconto**. O preço original é R$ 2.100,00, e com o desconto, o valor cai para **R$ 1.680,00**. O desconto não se acumula com outras ofertas, como o PIX. O produto está disponível em estoque (2 unidades).
+**Agent:** Guitarra Demo Promocional: de R$ 2.100,00 por R$ 1.680,00, desconto de 20%. Não acumula com PIX nem outras promoções. A base não informa validade por data. Valores e disponibilidade são do catálogo local, sem atualização em tempo real.
 
 **Tools:** search_products, get_applicable_promotions
 
-**Response source:** model
+**Response source:** python_verified_facts
 
-**Customer:** Se eu fechar no PIX, dá mais 5% por cima? E quanto ficaria em seis parcelas?
+**Model planning calls:** 1; **model error:** False; **seconds:** 41.34
 
-**Agent:** Não, o PIX **não inclui** mais 5% de desconto. O valor final com desconto (R$ 1.680,00) é o mesmo que o preço promocional.  
+**Customer:** Se eu fechar no PIX, dá mais 5% por cima? E em seis parcelas?
 
-Para **seis parcelas**, cada parcela fica em **R$ 280,00** (total: R$ 1.680,00). As parcelas são iguais e sem juros.
+**Agent:** Guitarra Demo Promocional: preço de tabela R$ 2.100,00; preço de compra R$ 1.680,00. No PIX: R$ 1.680,00. Promoção de 20%; não acumula mais 5% no PIX. Em 6 parcelas sem juros: R$ 280,00 (total R$ 1.680,00). O cálculo usa a tabela específica de parcelas; confirme as condições com o atendimento humano. Valores e disponibilidade são do catálogo local, sem atualização em tempo real.
 
 **Tools:** calculate_payment_options
 
-**Response source:** model
+**Response source:** python_verified_facts
+
+**Model planning calls:** 1; **model error:** False; **seconds:** 84.46

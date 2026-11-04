@@ -56,3 +56,30 @@ def test_original_promotions_are_not_assumed_time_valid(original_tools):
 
 def test_original_orders_require_authentication(original_tools):
     assert original_tools.get_order_status(1)["error"]["code"] == "authentication_required"
+
+
+def original_agent(tools):
+    from types import SimpleNamespace
+    from app.agent import Agent
+    class NoProse:
+        def create(self, **kwargs):
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="", tool_calls=[]))])
+    return Agent(tools, SimpleNamespace(chat=SimpleNamespace(completions=NoProse())))
+
+
+def test_original_contact_conflicts_are_disclosed(original_tools):
+    answer = original_agent(original_tools).ask("Qual o WhatsApp de contato?")
+    assert "divergentes" in answer
+
+
+def test_original_return_guidance_keeps_human_eligibility_review(original_tools):
+    answer = original_agent(original_tools).ask("Recebi online há cinco dias e perdi a embalagem. Posso devolver?")
+    assert "7 dias" in answer
+    assert "humano" in answer
+    assert "não aprovo nem nego" in answer.lower()
+
+
+def test_original_saturday_hours_come_from_policy(original_tools):
+    answer = original_agent(original_tools).ask("Qual o horário de funcionamento no sábado?")
+    assert "09:00" in answer
+    assert "13:00" in answer

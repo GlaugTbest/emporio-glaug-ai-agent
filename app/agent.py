@@ -32,7 +32,7 @@ class Agent:
     tools: StoreTools
     client: Any
     model: str = "qwen3:4b-instruct"
-    max_tool_rounds: int = 3
+    max_tool_rounds: int = 1
     histories: dict[str, list[list[dict]]] = field(default_factory=dict)
     last_products: dict[str, list[int]] = field(default_factory=dict)
     filters: dict[str, dict] = field(default_factory=dict)
@@ -79,6 +79,16 @@ class Agent:
         for name, args, result in records:
             append_result(name, args, result)
         denied = any(name == "get_order_status" and result.get("error") for name, _, result in records)
+        primary = records[0][0] if records else None
+        allowed = None
+        if primary == "search_products":
+            allowed = {"search_products", "get_product_details"}
+            if any(term in text for term in ("pix", "parcela", "cartao", "vezes")):
+                allowed.add("calculate_payment_options")
+            if "promoc" in text or "descont" in text:
+                allowed.add("get_applicable_promotions")
+        elif primary in {"get_order_status", "search_store_policies"}:
+            allowed = {primary}
         if not denied:
             for _ in range(self.max_tool_rounds):
                 try:
@@ -101,10 +111,21 @@ class Agent:
                         args = json.loads(call.function.arguments)
                         if not isinstance(name, str) or not isinstance(args, dict):
                             raise ValueError("Malformed tool call")
+                        if allowed is not None and name not in allowed:
+                            continue
                         if name == "search_products":
+                            query = fold(str(args.get("query", ""))).strip()
+                            explicit_name = (query and query not in {"nylon", "aco", "violao", "violoes", "guitarras"}
+                                             and all(word in text for word in query.split())
+                                             and not any(word in text for word in ("desses", "outros", "primeiro", "segundo")))
+                            if explicit_name:
+                                filters = search_filters(user_message)
+                                self.filters[session_id] = filters
                             # Explicit customer filters cannot be relaxed by model arguments.
                             args = {**args, **filters}
-                        if name in {"get_product_details", "get_applicable_promotions", "calculate_payment_options"} and selected and args.get("product_id") not in selected:
+                        if name in {"get_applicable_promotions", "calculate_payment_options"} and len(selected) > 1:
+                            result = {"error": {"code": "ambiguous_product"}}
+                        elif name in {"get_product_details", "get_applicable_promotions", "calculate_payment_options"} and selected and args.get("product_id") not in selected:
                             result = {"error": {"code": "product_mismatch"}}
                         else:
                             result = self.tools.execute(name, args)
@@ -124,6 +145,8 @@ class Agent:
         answer, outcome = render(records, user_message)
         self.last_records = records
         self.last_outcome = outcome
+        if outcome["kind"] == "catalog":
+            self.last_products[session_id] = [p["product_id"] for p in outcome["products"]]
         self.last_answer_source = ("python_privacy_rule" if outcome["kind"] == "privacy_denial"
                                   else "python_order_snapshot_guard" if outcome["kind"] == "order"
                                   else "python_verified_facts")
@@ -144,4 +167,3 @@ class Agent:
 def build_client(base_url: str | None = None):
     from app.local_client import LocalChatClient
     return LocalChatClient(base_url)
-

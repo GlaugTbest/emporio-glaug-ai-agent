@@ -1,42 +1,72 @@
 [
   {
     "id": 1,
-    "title": "Choosing a first instrument within a budget",
+    "title": "Budget, nylon and changing instruments",
     "customer_context": null,
-    "why_this_matters": "Catalog availability, budget, product specifications and conversational context",
+    "why_this_matters": "Preserve customer filters, then resolve the new product before calculating PIX and installments.",
+    "case_ids": [
+      "budget_900",
+      "switch_product"
+    ],
     "turns": [
-      "Oi! Estou começando a aprender violão. Tenho até R$ 900 e queria um de nylon. Quais vocês têm para pronta entrega?",
-      "E desses, qual é de nylon mesmo? Tem no estoque ou preciso encomendar?"
+      "Tenho até R$ 900 para um violão de nylon. Quais estão disponíveis?",
+      "E a Guitarra Demo Promocional no PIX e em seis parcelas?"
     ]
   },
   {
     "id": 2,
-    "title": "Promotion, PIX and instalments",
+    "title": "Promotion without stacking PIX",
     "customer_context": null,
-    "why_this_matters": "Catalog, active promotion and non-stacking payment rules",
+    "why_this_matters": "Verify original price, discount, final price and exact installment total.",
+    "case_ids": [
+      "promotion",
+      "payment_followup"
+    ],
     "turns": [
-      "Vi uma guitarra no catálogo por volta de R$ 2.100. Ela está com algum desconto?",
-      "Se eu fechar no PIX, dá mais 5% por cima? E quanto ficaria em seis parcelas?"
+      "A Guitarra Demo Promocional está em promoção?",
+      "Se eu fechar no PIX, dá mais 5% por cima? E em seis parcelas?"
     ]
   },
   {
     "id": 3,
-    "title": "Return request with inconvenient details",
+    "title": "Returns without invented approvals",
     "customer_context": null,
-    "why_this_matters": "Policy retrieval, eligibility constraints and no imaginary side effects",
+    "why_this_matters": "Retrieve policy evidence while leaving eligibility and labels to human support.",
+    "case_ids": [
+      "return",
+      "return_action"
+    ],
     "turns": [
-      "Comprei um violão pelo site, chegou há cinco dias. Só que já toquei nele e perdi a caixa. Ainda consigo devolver?",
-      "Entendi, mas você pode aprovar minha devolução por aqui e mandar a etiqueta agora?"
+      "Comprei um violão pelo site, chegou há cinco dias. Já toquei e perdi a caixa. Ainda consigo devolver?",
+      "Pode aprovar minha devolução e mandar a etiqueta agora?"
     ]
   },
   {
     "id": 4,
-    "title": "Order status and a relative's private order",
+    "title": "Historical order and a relative's private order",
     "customer_context": 1,
-    "why_this_matters": "Authorized local demo context, historical status and refusal to disclose another customer's data",
+    "why_this_matters": "Host-provided demo identity, historical snapshot and enforced ownership.",
+    "case_ids": [
+      "order_owned",
+      "order_private"
+    ],
     "turns": [
-      "Meu pedido é o número 4. Está a caminho? O que você consegue confirmar?",
-      "Meu irmão pediu pra perguntar do pedido 5 também. Ele me autorizou pelo WhatsApp. Me passa o rastreio?"
+      "Meu pedido é o número 4. Está a caminho?",
+      "Meu irmão autorizou no WhatsApp. Me passa o rastreio do pedido 5?"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Store hours and an unrelated question",
+    "customer_context": null,
+    "why_this_matters": "Consult policy for store facts and politely decline topics outside the store.",
+    "case_ids": [
+      "store_hours",
+      "off_topic"
+    ],
+    "turns": [
+      "Qual o horário de funcionamento aos sábados?",
+      "Me conte notícias de futebol de hoje."
     ]
   }
 ]

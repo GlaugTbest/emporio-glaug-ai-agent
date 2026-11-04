@@ -122,6 +122,10 @@ def render(records: list[tuple[str, dict, dict]], message: str) -> tuple[str, di
     searches = [r for name, _, r in valid if name == "search_products"]
     details = [r["product"] for name, _, r in valid if name == "get_product_details" and r.get("product")]
     products = searches[-1].get("products", []) if searches else details
+    material = next((m for m in ("nylon", "aco") if re.search(rf"\b{m}\b", fold(message))), None)
+    if material and not searches:
+        products = [p for p in products if material in fold(str(p.get("specs", {})))
+                    or (material == "aco" and "steel" in str(p.get("specs", {})).lower())]
     if products:
         lines = []
         for p in products[:8]:
@@ -139,4 +143,3 @@ def render(records: list[tuple[str, dict, dict]], message: str) -> tuple[str, di
     if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)[!. ]*", fold(message).strip()):
         return "Olá! Sua música começa aqui. Posso ajudar com instrumentos e informações da Empório da Música.", {"kind": "greeting"}
     return SCOPE, {"kind": "scope"}
-

@@ -100,3 +100,60 @@ def test_conflicting_contacts_are_not_silently_selected(tools):
     assert "divergentes" in answer.lower()
     assert "1111-1111" not in answer
     assert "2222-2222" not in answer
+
+
+def test_material_filter_in_followup_removes_nonmatching_previous_options(tools):
+    assistant = agent(tools, "opções", "opções")
+    assistant.ask("Quais violões até R$ 1000?")
+    answer = assistant.ask("E quais desses são de nylon?")
+    assert "599,90" in answer
+    assert "849,00" not in answer
+    assert assistant.last_products["default"] == [1]
+
+
+def test_unrequested_model_payment_call_does_not_replace_catalog_answer(tools):
+    class UnrelatedTool:
+        def create(self, **kwargs):
+            call = SimpleNamespace(function=SimpleNamespace(
+                name="calculate_payment_options", arguments='{"product_id": 1}'))
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(
+                content="", tool_calls=[call]))])
+    assistant = Agent(tools, SimpleNamespace(chat=SimpleNamespace(completions=UnrelatedTool())))
+    answer = assistant.ask("Quais violões de nylon até R$ 900 estão em estoque?")
+    assert "5 em estoque" in answer
+    assert "569,91" not in answer
+    assert assistant.last_outcome["kind"] == "catalog"
+
+
+def test_ambiguous_payment_does_not_pick_first_of_several_products(tools):
+    class Payment:
+        def create(self, **kwargs):
+            call = SimpleNamespace(function=SimpleNamespace(
+                name="calculate_payment_options", arguments='{"product_id": 1}'))
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="", tool_calls=[call]))])
+    assistant = agent(tools, "opções")
+    assistant.ask("Quais violões até R$ 1000?")
+    assistant.client = SimpleNamespace(chat=SimpleNamespace(completions=Payment()))
+    answer = assistant.ask("E quanto fica no PIX?")
+    assert "569,91" not in answer
+    assert assistant.last_outcome["kind"] == "unconfirmed"
+
+
+def test_explicit_first_option_can_be_used_for_payment(tools):
+    assistant = agent(tools, "opções", "pagamento")
+    assistant.ask("Quais violões até R$ 1000?")
+    answer = assistant.ask("E o primeiro no PIX?")
+    assert "569,91" in answer
+
+
+def test_new_named_product_does_not_inherit_old_budget_and_material(tools):
+    class NamedSearch:
+        def create(self, **kwargs):
+            call = SimpleNamespace(function=SimpleNamespace(
+                name="search_products", arguments='{"query": "Takamine GD20"}'))
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="", tool_calls=[call]))])
+    assistant = agent(tools, "opções")
+    assistant.ask("Quero violão de nylon até R$ 900.")
+    assistant.client = SimpleNamespace(chat=SimpleNamespace(completions=NamedSearch()))
+    answer = assistant.ask("Quanto custa o Takamine GD20?")
+    assert "2.599,00" in answer

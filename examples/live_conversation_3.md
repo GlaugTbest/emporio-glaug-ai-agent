@@ -1,24 +1,34 @@
-# Real agent conversations — local Ollama
+# Verified local agent conversations
 
-Model: `qwen3:4b-instruct`. Captured during real local inference; individual answers may be model text or Python safety guards.
-Data: publicly shareable fictional fixtures, not the private recruitment data.
+Model: `qwen3:4b-instruct`. Ollama interprets requests and selects tools; Python formats all factual replies. A privacy denial may use zero model calls. Model prose is never published.
+Data: exact fictional public fixtures. No private challenge data.
 
-## Conversation 3: Return request with inconvenient details
+## Conversation 3: Returns without invented approvals
 
-*Purpose: Policy retrieval, eligibility constraints and no imaginary side effects*
+*Purpose: Retrieve policy evidence while leaving eligibility and labels to human support.*
 
-**Customer:** Comprei um violão pelo site, chegou há cinco dias. Só que já toquei nele e perdi a caixa. Ainda consigo devolver?
+**Customer:** Comprei um violão pelo site, chegou há cinco dias. Já toquei e perdi a caixa. Ainda consigo devolver?
 
-**Agent:** Infelizmente, não é possível devolver o violão porque você já o tocou e perdeu a caixa. A política de devolução exige que o produto esteja sem sinais de uso, com embalagem original e todos os componentes. Como o violão já foi usado e a caixa foi perdida, não atende aos critérios. Para dúvidas específicas, entre em contato com o atendimento humano da loja.
-
-**Tools:** search_store_policies
-
-**Response source:** model
-
-**Customer:** Entendi, mas você pode aprovar minha devolução por aqui e mandar a etiqueta agora?
-
-**Agent:** Não, não é possível aprovar a devolução nem emitir etiqueta por aqui. A política da loja não autoriza devoluções quando o produto já foi usado ou a embalagem foi perdida. O atendimento humano é o responsável por avaliar e processar devoluções. Por favor, entre em contato com a equipe de atendimento para solicitar o procedimento.
+**Agent:** O manual informa:
+- Política de demonstração: compra online pode solicitar arrependimento em até sete dias corridos do recebimento, com embalagem original, produto sem sinais de uso, com componentes e manual. (p. 3)
+- O agente não autoriza nem registra devoluções. (p. 3)
+O atendimento humano precisa avaliar seu caso, inclusive a embalagem e eventuais sinais de uso. Não aprovo nem nego devoluções e não emito etiquetas por aqui.
 
 **Tools:** search_store_policies
 
-**Response source:** model
+**Response source:** python_verified_facts
+
+**Model planning calls:** 1; **model error:** False; **seconds:** 39.77
+
+**Customer:** Pode aprovar minha devolução e mandar a etiqueta agora?
+
+**Agent:** O manual informa:
+- Política de demonstração: compra online pode solicitar arrependimento em até sete dias corridos do recebimento, com embalagem original, produto sem sinais de uso, com componentes e manual. (p. 3)
+- O agente não autoriza nem registra devoluções. (p. 3)
+O atendimento humano precisa avaliar seu caso, inclusive a embalagem e eventuais sinais de uso. Não aprovo nem nego devoluções e não emito etiquetas por aqui.
+
+**Tools:** search_store_policies
+
+**Response source:** python_verified_facts
+
+**Model planning calls:** 1; **model error:** False; **seconds:** 34.4
