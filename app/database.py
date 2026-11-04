@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sqlite3
+from contextlib import closing, contextmanager
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from tempfile import mkstemp
+from typing import Iterator
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -81,14 +85,15 @@ INT_FIELDS = {"category_id", "product_id", "customer_id", "order_id", "quantity"
 DEC_FIELDS = {"price_brl", "total_brl", "discount_percent"}
 
 
-def read_only_connection(db_path: str | Path) -> sqlite3.Connection:
+@contextmanager
+def read_only_connection(db_path: str | Path) -> Iterator[sqlite3.Connection]:
     path = Path(db_path).resolve()
     if not path.is_file():
         raise FileNotFoundError(f"Database not found: {path}. Run scripts/prepare_data.py first.")
-    connection = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA query_only=ON")
-    return connection
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only=ON")
+        yield connection
 
 
 def _read_csv(path: Path, expected: tuple[str, ...]) -> list[dict]:
@@ -135,10 +140,11 @@ def build_database(db_path: str | Path, source_dir: str | Path, sections: list[d
     source_dir, db_path = Path(source_dir), Path(db_path)
     rows = {name: _read_csv(_find_csv(source_dir, name), FIELDS[name]) for name in LOAD_ORDER}
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    temp = db_path.with_name(db_path.name + ".building")
-    temp.unlink(missing_ok=True)
+    descriptor, temporary_name = mkstemp(prefix=f".{db_path.name}.", suffix=".building", dir=db_path.parent)
+    os.close(descriptor)
+    temp = Path(temporary_name)
     try:
-        with sqlite3.connect(temp) as conn:
+        with closing(sqlite3.connect(temp)) as conn, conn:
             conn.executescript(SCHEMA)
             for name in LOAD_ORDER:
                 columns = FIELDS[name]

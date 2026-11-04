@@ -44,3 +44,21 @@ def test_pdf_extraction_original_available():
     pages = sections_from_pdf(Path(manual))
     assert len(pages) == 8
     assert any("7 (sete) dias" in p["content"] for p in pages)
+
+
+def test_read_only_context_releases_the_connection(tmp_path):
+    path = tmp_path / "minimal.db"
+    conn = sqlite3.connect(path)
+    conn.close()
+    with read_only_connection(path) as opened:
+        assert opened.execute("SELECT 1").fetchone()[0] == 1
+    with pytest.raises(sqlite3.ProgrammingError):
+        opened.execute("SELECT 1")
+
+
+def test_import_publishes_closed_database_without_temporary_files(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    path = tmp_path / "store.db"
+    build_database(path, root / "fixtures", sections_from_json(root / "fixtures/demo_policies.json"))
+    path.rename(tmp_path / "renamed.db")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["renamed.db"]

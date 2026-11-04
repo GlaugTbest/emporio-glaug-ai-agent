@@ -25,8 +25,8 @@ def _error(code: str, message: str) -> dict:
 
 
 def _required_positive_int(value: Any, name: str) -> int:
-    if type(value) is not int or value <= 0:
-        raise ValueError(f"{name} must be a positive integer")
+    if type(value) is not int or not 0 < value <= 2**63 - 1:
+        raise ValueError(f"{name} must be a positive SQLite integer")
     return value
 
 
@@ -70,10 +70,12 @@ class StoreTools:
         }
 
     def execute(self, tool_name: str, args: Any) -> dict:
+        if not isinstance(tool_name, str):
+            return _error("unknown_tool", "Tool is not supported")
         function = self._handlers.get(tool_name)
         if function is None:
             return _error("unknown_tool", "Tool is not supported")
-        if not isinstance(args, dict):
+        if not isinstance(args, dict) or any(not isinstance(k, str) for k in args):
             return _error("invalid_arguments", "Arguments must be a JSON object")
         allowed = TOOL_ARGUMENTS[tool_name]
         extra = set(args) - allowed
@@ -81,8 +83,8 @@ class StoreTools:
             return _error("invalid_arguments", f"Unsupported arguments: {sorted(extra)}")
         try:
             return function(**args)
-        except (TypeError, ValueError, sqlite3.Error) as exc:
-            return _error("tool_error", str(exc))
+        except (TypeError, ValueError, sqlite3.Error, OverflowError, OSError):
+            return _error("tool_error", "Invalid arguments or unavailable local data")
 
     def search_products(
         self,

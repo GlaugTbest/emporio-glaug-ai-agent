@@ -9,6 +9,10 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
+*.building
+*.building-*
+.ruff_cache/
 .coverage
 htmlcov/
 data/private/
