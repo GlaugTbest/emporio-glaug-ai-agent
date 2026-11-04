@@ -68,6 +68,13 @@ def test_second_option_is_resolved_once(tools):
     assert agent.last_products["default"] == [2]
 
 
+def test_trace_preserves_executed_lookups_when_a_search_refines_evidence(tools):
+    agent = assistant(tools, [("search_products", {"query": "nylon"})])
+    agent.ask("Quais violões de nylon até R$ 900?")
+    assert any(name == "get_product_details" for name, _, _ in agent.last_records)
+    assert [p["product_id"] for p in agent.last_outcome["products"]] == [1]
+
+
 @pytest.mark.parametrize("bad_amount", ["1e100", "0.001"])
 def test_unrepresentable_price_is_rejected_before_replacing_database(db, tmp_path, bad_amount):
     root = Path(__file__).resolve().parents[1]

@@ -69,8 +69,10 @@ class Agent:
             self.filters[session_id] = filters
         self.last_products[session_id] = selected
         self.last_prefetch = [name for name, _, _ in records]
+        trace = []
 
         def append_result(name, args, result):
+            trace.append((name, args, result))
             ident = f"turn_{len(prior)}_tool_{len(current)}"
             current.extend([
                 {"role": "assistant", "content": "", "tool_calls": [{"id": ident, "type": "function", "function": {"name": name, "arguments": json.dumps(args, ensure_ascii=False)}}]},
@@ -158,7 +160,7 @@ class Agent:
                 records.append((financial, args, result))
                 append_result(financial, args, result)
         answer, outcome = render(records, user_message)
-        self.last_records = records
+        self.last_records = trace
         self.last_outcome = outcome
         if outcome["kind"] == "catalog":
             self.last_products[session_id] = [p["product_id"] for p in outcome["products"]]
