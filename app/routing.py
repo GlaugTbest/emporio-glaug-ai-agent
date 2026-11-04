@@ -24,6 +24,7 @@ def product_query(message: str) -> str:
     text = re.sub(r"(?:ate|por volta|orcamento de|tenho)\s*(?:r\$\s*)?[\d.,]+", "", text)
     text = re.sub(r"r\$\s*[\d.,]+", "", text)
     text = re.sub(r"\d+(?:[.,]\d+)?\s*%", "", text)
+    text = re.sub(r"\b(?:\d{1,2}|uma|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze)\s*(?:x|parcelas|vezes)\b", "", text)
     words = [word for word in re.findall(r"[a-z0-9]+", text)
              if word not in QUERY_FILLER and word not in QUERY_CATEGORIES]
     return " ".join(dict.fromkeys(words))
@@ -34,7 +35,7 @@ def search_filters(message: str, previous: dict | None = None) -> dict:
     category = next((label for term, label in CATEGORIES if term in text), "")
     old = previous or {}
     query = product_query(message)
-    product_intent = bool(category) or any(term in text for term in ("quanto custa", "preco", "no pix"))
+    product_intent = bool(category) or any(term in text for term in ("quanto custa", "preco", *PAYMENT_MARKERS))
     named = product_intent and query and any(word not in {"nylon", "aco"} for word in query.split())
     filters = old.copy() if not named and (not category or category == old.get("category")) else {}
     if category:
@@ -71,7 +72,7 @@ def plan(message: str, product_ids: list[int]) -> list[tuple[str, dict]]:
     if any(marker in text for marker in POLICY_MARKERS) and not product_question:
         return [("search_store_policies", {"query": message[:300]})]
     filters = search_filters(message)
-    if filters.get("category") or filters.get("query") and any(term in text for term in ("quanto custa", "preco", "no pix")):
+    if filters.get("category") or filters.get("query") and any(term in text for term in ("quanto custa", "preco", *PAYMENT_MARKERS)):
         # Payment depends on this search's result, never on the previous product.
         return [("search_products", filters)]
     selected = product_ids[:1] if "primeiro" in text else product_ids[1:2] if "segundo" in text else product_ids

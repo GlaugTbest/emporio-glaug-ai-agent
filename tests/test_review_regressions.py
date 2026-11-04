@@ -37,6 +37,16 @@ def test_new_named_product_payment_invalidates_old_calculation(tools):
     assert agent.last_outcome["payment"]["product_id"] == 7
 
 
+@pytest.mark.parametrize("payment", ["no cartão", "em seis parcelas"])
+def test_named_payment_reference_is_resolved_for_all_payment_methods(tools, payment):
+    agent = assistant(tools, [], [])
+    agent.ask("Quero violão de nylon até R$ 900.")
+    answer = agent.ask(f"E o Takamine GD20 {payment}?")
+    assert "Takamine GD20" in answer
+    assert "569,91" not in answer
+    assert agent.last_outcome["payment"]["product_id"] == 7
+
+
 def test_unmatched_brand_cannot_keep_generic_category_payment(tools):
     agent = assistant(tools, [("search_products", {"query": "Gibson"})])
     answer = agent.ask("Quanto custa uma guitarra Gibson no PIX?")
