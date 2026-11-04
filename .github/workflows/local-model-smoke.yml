@@ -23,7 +23,7 @@ jobs:
       matrix:
         include:
           - scenario: 1
-            cases: '--case product_budget --case product_context --case budget_900 --case switch_product'
+            cases: '--case product_budget --case product_context --case budget_900 --case switch_product --case named_payment'
           - scenario: 2
             cases: '--case promotion --case payment_followup'
           - scenario: 3
@@ -31,7 +31,7 @@ jobs:
           - scenario: 4
             cases: '--case order_owned --case order_private --case prompt_injection'
           - scenario: 5
-            cases: '--case store_hours --case off_topic --case named_price'
+            cases: '--case store_hours --case off_topic --case named_price --case unknown_brand'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

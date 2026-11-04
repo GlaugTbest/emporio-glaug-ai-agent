@@ -108,6 +108,41 @@
     }
   },
   {
+    "id": "named_payment",
+    "session_id": "budget900",
+    "user": "E o Takamine GD20 no PIX?",
+    "expected_tool": "calculate_payment_options",
+    "expected_kind": "payment",
+    "require_model": true,
+    "required_calls": [
+      {
+        "tool": "calculate_payment_options",
+        "arguments": {
+          "product_id": 7
+        }
+      }
+    ],
+    "expected_payment": {
+      "product_id": 7,
+      "purchase_price_brl": "2599.00",
+      "pix_price_brl": "2469.05"
+    },
+    "expected_amounts": [
+      "2599.00",
+      "2469.05",
+      "216.58",
+      "216.62"
+    ],
+    "must_contain": [
+      "Takamine GD20",
+      "R$ 2.469,05"
+    ],
+    "must_not_contain": [
+      "569,91",
+      "Demo Nylon"
+    ]
+  },
+  {
     "require_model": true,
     "expected_amounts": [
       "2100.00",
@@ -317,5 +352,22 @@
     "product_prices": {
       "Takamine GD20": "2599.00"
     }
+  },
+  {
+    "id": "unknown_brand",
+    "session_id": "unknown",
+    "user": "Quanto custa uma guitarra Gibson no PIX?",
+    "expected_tool": "search_products",
+    "expected_kind": "empty_catalog",
+    "expected_ids": [],
+    "require_model": true,
+    "expected_amounts": [],
+    "must_contain": [
+      "não encontrei"
+    ],
+    "must_not_contain": [
+      "Demo",
+      "R$"
+    ]
   }
 ]

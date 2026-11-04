@@ -27,9 +27,11 @@ def main():
     ensure_model(args.model)
     root = Path(__file__).resolve().parents[1]
     implementation = hashlib.sha256()
-    for source in sorted((root / "app").glob("*.py")) + [Path(__file__).resolve()]:
+    sources = (sorted((root / "app").glob("*.py")) + sorted((root / "fixtures").glob("*"))
+               + [Path(__file__).resolve(), root / "scripts/capture_examples.py", root / "evals/cases.json"])
+    for source in sources:
         implementation.update(str(source.relative_to(root)).replace("\\", "/").encode())
-        implementation.update(source.read_bytes())
+        implementation.update(source.read_text(encoding="utf-8-sig").replace("\r\n", "\n").encode("utf-8"))
     model_digest = next((m.get("digest") for m in local_json(None, "tags", timeout=3)["models"]
                          if m["name"] == args.model), None)
     client = build_client()

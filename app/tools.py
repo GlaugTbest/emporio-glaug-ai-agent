@@ -83,7 +83,7 @@ class StoreTools:
             return _error("invalid_arguments", f"Unsupported arguments: {sorted(extra)}")
         try:
             return function(**args)
-        except (TypeError, ValueError, sqlite3.Error, OverflowError, OSError):
+        except (TypeError, ValueError, sqlite3.Error, ArithmeticError, OSError):
             return _error("tool_error", "Invalid arguments or unavailable local data")
 
     def search_products(

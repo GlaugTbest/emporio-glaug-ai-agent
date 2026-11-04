@@ -115,6 +115,9 @@ def _read_csv(path: Path, expected: tuple[str, ...]) -> list[dict]:
                         decimal = Decimal(value)
                         if not decimal.is_finite() or decimal < 0:
                             raise ValueError("non-finite or negative number")
+                        maximum = Decimal(100) if key == "discount_percent" else Decimal(10**9)
+                        if decimal > maximum or decimal != decimal.quantize(Decimal("0.01")):
+                            raise ValueError("amount outside supported magnitude or cent precision")
                     except (InvalidOperation, ValueError) as exc:
                         raise ValueError(f"Invalid amount: {path}:{line}:{key}") from exc
                     cleaned[key] = str(decimal)

@@ -64,8 +64,9 @@ class Agent:
             prior = prior[1:]
         current = [{"role": "user", "content": user_message.strip()}]
         filters = search_filters(user_message, self.filters.get(session_id))
-        self.filters[session_id] = filters
         records, selected = prefetch(self.tools, user_message, self.last_products.get(session_id, []), filters)
+        if any(name == "search_products" for name, _, _ in records):
+            self.filters[session_id] = filters
         self.last_products[session_id] = selected
         self.last_prefetch = [name for name, _, _ in records]
 
@@ -121,11 +122,13 @@ class Agent:
                             if explicit_name:
                                 filters = search_filters(user_message)
                                 self.filters[session_id] = filters
-                            # Explicit customer filters cannot be relaxed by model arguments.
-                            args = {**args, **filters}
+                            # Identity and material are AND constraints, never replacements.
+                            requested = args.get("query", "")
+                            combined = " ".join(dict.fromkeys((fold(requested) + " " + filters.get("query", "")).split())) if isinstance(requested, str) else requested
+                            args = {**args, **filters, "query": combined}
                         if name in {"get_applicable_promotions", "calculate_payment_options"} and len(selected) > 1:
                             result = {"error": {"code": "ambiguous_product"}}
-                        elif name in {"get_product_details", "get_applicable_promotions", "calculate_payment_options"} and selected and args.get("product_id") not in selected:
+                        elif name in {"get_product_details", "get_applicable_promotions", "calculate_payment_options"} and args.get("product_id") not in selected:
                             result = {"error": {"code": "product_mismatch"}}
                         else:
                             result = self.tools.execute(name, args)
@@ -135,6 +138,9 @@ class Agent:
                     if name == "search_products" and not result.get("error"):
                         selected = [p["product_id"] for p in result.get("products", [])]
                         self.last_products[session_id] = selected
+                        # Every dependent fact belongs to the previous selection snapshot.
+                        records = [(n, a, r) for n, a, r in records if n not in {
+                            "search_products", "get_product_details", "get_applicable_promotions", "calculate_payment_options"}]
                     records.append((name, args, result))
                     append_result(name, args, result)
                     if name == "get_order_status" and result.get("error"):
@@ -142,6 +148,15 @@ class Agent:
                         break
                 if denied:
                     break
+        if any(name == "search_products" for name, _, _ in records) and len(selected) == 1:
+            financial = ("calculate_payment_options" if any(term in text for term in ("pix", "parcela", "cartao", "vezes"))
+                         else "get_applicable_promotions" if "promoc" in text or "descont" in text else None)
+            if financial and not any(name == financial and args.get("product_id") == selected[0] and not result.get("error")
+                                     for name, args, result in records):
+                args = {"product_id": selected[0]}
+                result = self.tools.execute(financial, args)
+                records.append((financial, args, result))
+                append_result(financial, args, result)
         answer, outcome = render(records, user_message)
         self.last_records = records
         self.last_outcome = outcome
