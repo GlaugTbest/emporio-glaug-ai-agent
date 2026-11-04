@@ -2,11 +2,6 @@
 import json
 from pathlib import Path
 
-from scripts.capture_examples import run_scenario
-from app.agent import Agent
-from app.tools import ToolContext
-
-
 def test_four_scenarios_with_distinct_goals():
     path = Path(__file__).resolve().parents[1] / "evals" / "scenarios.json"
     scenarios = json.loads(path.read_text(encoding="utf-8"))

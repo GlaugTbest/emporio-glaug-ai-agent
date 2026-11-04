@@ -57,8 +57,8 @@ def test_order_refusal_even_if_user_claims_identity(tools):
 def test_no_tool_ungrounded_price_is_blocked(tools):
     client, _ = fake_client([message("Esse violão custa R$ 99,90." )])
     response = Agent(tools, client).ask("Quanto custa o violão?")
-    assert "99" not in response
-    assert "consultar" in response
+    assert "R$ 99,90" not in response
+    assert "R$ 599,90" in response
 
 
 def test_out_of_scope_and_invalid_questions(tools):
@@ -73,8 +73,8 @@ def test_tool_loop_is_bounded(tools):
     client, _ = fake_client([message(calls=[call("search_products", {})]) for _ in range(2)])
     agent = Agent(tools, client, max_tool_rounds=2)
     result = agent.ask("O que vocês vendem?")
-    assert "segurança" in result
-    assert not agent.histories
+    assert len(client.chat.completions.requests) == 2
+    assert "599,90" in result  # Verified facts remain useful at the tool limit.
 
 
 def test_provider_error_does_not_corrupt_session(tools):

@@ -21,7 +21,7 @@ class OneReply:
 def test_routing_for_natural_customer_questions():
     assert plan("Recebi o violão há cinco dias, posso devolver?", [1])[0][0] == "search_store_policies"
     assert plan("Tem violões de nylon para pronta entrega até R$ 900?", [1])[0] == (
-        "search_products", {"category": "violões", "max_price_brl": 900.0})
+        "search_products", {"category": "violões", "max_price_brl": 900.0, "query": "nylon"})
     assert plan("Quero a promoção dessa guitarra", [4])[0][0] == "search_products"
     assert plan("No PIX tem desconto? E em seis parcelas?", [4]) == [
         ("calculate_payment_options", {"product_id": 4})]
@@ -57,8 +57,8 @@ def test_wrong_model_price_is_rejected_even_after_valid_search(tools):
     fake = OneReply("Esse violão custa R$ 99,90.")
     client = SimpleNamespace(chat=SimpleNamespace(completions=fake))
     response = Agent(tools, client).ask("Quanto custa o violão?")
-    assert "99,90" not in response
-    assert "confirmar" in response
+    assert "R$ 99,90" not in response
+    assert "R$ 599,90" in response
 
 
 def test_other_customers_order_is_denied_before_model(db):
@@ -91,6 +91,6 @@ def test_budget_comparison_guard_corrects_false_out_of_budget_claim(tools):
     agent = Agent(tools, client)
     answer = agent.ask("Quero um violão até R$ 900, tem algum de nylon?")
     assert "ultrapassa" not in answer
-    assert "849,00" in answer
+    assert "849,00" not in answer  # Steel does not meet the requested nylon filter.
     assert "599,90" in answer
-    assert agent.last_answer_source == "python_budget_guard"
+    assert agent.last_answer_source == "python_verified_facts"
