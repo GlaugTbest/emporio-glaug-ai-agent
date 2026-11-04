@@ -366,7 +366,8 @@
       "não encontrei"
     ],
     "must_not_contain": [
-      "Demo",
+      "Guitarra Demo",
+      "Violão Demo",
       "R$"
     ]
   }

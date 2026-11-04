@@ -53,7 +53,7 @@ Ou com os seis CSVs em uma pasta dedicada e o manual separado:
 
 A pasta deve conter exatamente uma cópia de cada tabela: `categories`, `products`, `customers`, `orders`, `order_items` e `promotions`, com os cabeçalhos do desafio. O importador aceita `products.csv` e nomes terminados em ` - products.csv`. Não aponte para todo o diretório temporário do Windows, que pode conter cópias duplicadas.
 
-A importação valida colunas, valores e relacionamentos, fecha as conexões e só substitui o banco ao terminar com sucesso. Temporários têm nomes únicos e são ignorados pelo Git. **Os scripts de avaliações e gravações públicas recusam qualquer banco que difira das fixtures e políticas fictícias**, inclusive alterações nos clientes.
+A importação valida colunas, valores e relacionamentos, fecha as conexões e só substitui o banco ao terminar com sucesso. Aceita valores monetários não negativos de até R$ 1 bilhão, com precisão de centavos, e percentuais entre 0 e 100 com até duas casas decimais. Temporários têm nomes únicos e são ignorados pelo Git. **Os scripts de avaliações e gravações públicas recusam qualquer banco que difira das fixtures e políticas fictícias**, inclusive alterações nos clientes.
 
 ## Verificar
 

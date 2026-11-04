@@ -43,3 +43,16 @@ def test_evaluation_does_not_count_model_failure_as_live_success(tools):
     answer, agent = catalog_answer(tools)
     agent.last_model_error = True
     assert not score_case(CASE, answer, agent)["passed"]
+
+
+def test_unknown_brand_evaluation_does_not_confuse_podemos_with_demo(tools):
+    import json
+    from pathlib import Path
+    class Reply:
+        def create(self, **kwargs):
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="", tool_calls=[]))])
+    cases = json.loads((Path(__file__).resolve().parents[1] / "evals/cases.json").read_text(encoding="utf-8"))
+    case = next(c for c in cases if c["id"] == "unknown_brand")
+    agent = Agent(tools, SimpleNamespace(chat=SimpleNamespace(completions=Reply())))
+    answer = agent.ask(case["user"])
+    assert score_case(case, answer, agent)["passed"]

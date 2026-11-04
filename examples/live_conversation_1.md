@@ -17,7 +17,7 @@ Valores e disponibilidade são do catálogo local, sem atualização em tempo re
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 38.59
+**Model planning calls:** 1; **model error:** False; **seconds:** 32.33
 
 **Customer:** E a Guitarra Demo Promocional no PIX e em seis parcelas?
 
@@ -27,4 +27,14 @@ Valores e disponibilidade são do catálogo local, sem atualização em tempo re
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 80.56
+**Model planning calls:** 1; **model error:** False; **seconds:** 78.33
+
+**Customer:** E o Takamine GD20 no PIX?
+
+**Agent:** Takamine GD20 - DEMO FICTICIO: preço de tabela R$ 2.599,00; preço de compra R$ 2.599,00. No PIX: R$ 2.469,05. Em 12 parcelas sem juros: R$ 216,58 nas primeiras e R$ 216,62 na última (total R$ 2.599,00). O cálculo usa a tabela específica de parcelas; confirme as condições com o atendimento humano. Valores e disponibilidade são do catálogo local, sem atualização em tempo real.
+
+**Tools:** search_products, calculate_payment_options
+
+**Response source:** python_verified_facts
+
+**Model planning calls:** 1; **model error:** False; **seconds:** 83.85

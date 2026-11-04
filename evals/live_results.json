@@ -1,10 +1,12 @@
 {
-  "timestamp_utc": "2026-11-04T12:48:02.005787+00:00",
+  "timestamp_utc": "2026-11-04T13:26:18.431589+00:00",
   "mode": "REAL_OLLAMA_PLANNING_PYTHON_FACTS",
   "dataset": "public_fixtures",
+  "implementation_sha256": "030a876976a861d6661e242da2ca7dbe6000061f4082dc1c98fa556c687ed35a",
+  "model_digest": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
   "model": "qwen3:4b-instruct",
-  "cases": 14,
-  "passed": 14,
+  "cases": 16,
+  "passed": 16,
   "pass_rate_percent": 100.0,
   "results": [
     {
@@ -33,7 +35,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 38.64
+      "duration_seconds": 33.26,
+      "execution": "full"
     },
     {
       "case": "product_context",
@@ -67,7 +70,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 28.38
+      "duration_seconds": 24.84,
+      "execution": "full"
     },
     {
       "case": "budget_900",
@@ -103,7 +107,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 38.59
+      "duration_seconds": 32.33,
+      "execution": "full"
     },
     {
       "case": "switch_product",
@@ -123,7 +128,8 @@
         {
           "tool": "search_products",
           "arguments": {
-            "category": "guitarras"
+            "category": "guitarras",
+            "query": "demo promocional"
           }
         },
         {
@@ -137,7 +143,43 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 80.56
+      "duration_seconds": 78.33,
+      "execution": "full"
+    },
+    {
+      "case": "named_payment",
+      "user": "E o Takamine GD20 no PIX?",
+      "session_id": "budget900",
+      "customer_context": null,
+      "passed": true,
+      "tool_selection_pass": true,
+      "facts_check_pass": true,
+      "forbidden_response_check_pass": true,
+      "model_execution_pass": true,
+      "tools": [
+        "search_products",
+        "calculate_payment_options"
+      ],
+      "calls": [
+        {
+          "tool": "search_products",
+          "arguments": {
+            "query": "takamine gd20"
+          }
+        },
+        {
+          "tool": "calculate_payment_options",
+          "arguments": {
+            "product_id": 7
+          }
+        }
+      ],
+      "response": "Takamine GD20 - DEMO FICTICIO: preço de tabela R$ 2.599,00; preço de compra R$ 2.599,00. No PIX: R$ 2.469,05. Em 12 parcelas sem juros: R$ 216,58 nas primeiras e R$ 216,62 na última (total R$ 2.599,00). O cálculo usa a tabela específica de parcelas; confirme as condições com o atendimento humano. Valores e disponibilidade são do catálogo local, sem atualização em tempo real.",
+      "response_source": "python_verified_facts",
+      "model_calls": 1,
+      "model_error": false,
+      "duration_seconds": 83.85,
+      "execution": "full"
     },
     {
       "case": "promotion",
@@ -157,7 +199,8 @@
         {
           "tool": "search_products",
           "arguments": {
-            "category": "guitarras"
+            "category": "guitarras",
+            "query": "demo promocional"
           }
         },
         {
@@ -171,7 +214,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 41.34
+      "duration_seconds": 20.2,
+      "execution": "full"
     },
     {
       "case": "payment_followup",
@@ -198,7 +242,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 84.46
+      "duration_seconds": 91.65,
+      "execution": "full"
     },
     {
       "case": "return",
@@ -225,7 +270,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 39.77
+      "duration_seconds": 41.28,
+      "execution": "full"
     },
     {
       "case": "return_action",
@@ -252,7 +298,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 34.4
+      "duration_seconds": 46.16,
+      "execution": "full"
     },
     {
       "case": "order_owned",
@@ -279,7 +326,8 @@
       "response_source": "python_order_snapshot_guard",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 20.79
+      "duration_seconds": 30.83,
+      "execution": "full"
     },
     {
       "case": "order_private",
@@ -306,7 +354,8 @@
       "response_source": "python_privacy_rule",
       "model_calls": 0,
       "model_error": false,
-      "duration_seconds": 0.0
+      "duration_seconds": 0.01,
+      "execution": "full"
     },
     {
       "case": "store_hours",
@@ -333,7 +382,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 13.74
+      "duration_seconds": 18.97,
+      "execution": "full"
     },
     {
       "case": "off_topic",
@@ -351,7 +401,8 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 8.4
+      "duration_seconds": 9.69,
+      "execution": "full"
     },
     {
       "case": "prompt_injection",
@@ -369,7 +420,8 @@
       "response_source": "python_scope_rule",
       "model_calls": 0,
       "model_error": false,
-      "duration_seconds": 0.0
+      "duration_seconds": 0.0,
+      "execution": "full"
     },
     {
       "case": "named_price",
@@ -388,7 +440,7 @@
         {
           "tool": "search_products",
           "arguments": {
-            "query": "Takamine GD20"
+            "query": "takamine gd20"
           }
         }
       ],
@@ -396,7 +448,90 @@
       "response_source": "python_verified_facts",
       "model_calls": 1,
       "model_error": false,
-      "duration_seconds": 4.4
+      "duration_seconds": 16.84,
+      "execution": "full"
+    },
+    {
+      "case": "unknown_brand",
+      "user": "Quanto custa uma guitarra Gibson no PIX?",
+      "session_id": "unknown",
+      "customer_context": null,
+      "passed": true,
+      "tool_selection_pass": true,
+      "facts_check_pass": true,
+      "forbidden_response_check_pass": true,
+      "model_execution_pass": true,
+      "tools": [
+        "search_products"
+      ],
+      "calls": [
+        {
+          "tool": "search_products",
+          "arguments": {
+            "category": "guitarras",
+            "query": "gibson"
+          }
+        }
+      ],
+      "response": "Não encontrei produto disponível que atenda a esses filtros. Podemos ajustar o modelo ou o orçamento?",
+      "response_source": "python_verified_facts",
+      "model_calls": 1,
+      "model_error": false,
+      "duration_seconds": 9.1,
+      "execution": "unknown_brand_retry"
     }
-  ]
+  ],
+  "evidence_type": "CONSOLIDATED_REAL_RUNS",
+  "consolidation_note": "Application code and 15 other case definitions unchanged. The forbidden substring Demo falsely matched Podemos. It was replaced by complete product names and unknown_brand was rerun against real Ollama. The original rejection is retained below; no failed application response was hidden.",
+  "executions": [
+    {
+      "id": "full",
+      "timestamp_utc": "2026-11-04T13:23:32.588077+00:00",
+      "implementation_sha256": "29226b105adafd2a82e1312fff341f9d79ed6b7b7a93f5c3a3b204edd902f17b",
+      "cases": 16,
+      "passed": 15,
+      "model_calls": 14,
+      "model_errors": 0
+    },
+    {
+      "id": "unknown_brand_retry",
+      "timestamp_utc": "2026-11-04T13:26:18.431589+00:00",
+      "implementation_sha256": "030a876976a861d6661e242da2ca7dbe6000061f4082dc1c98fa556c687ed35a",
+      "cases": 1,
+      "passed": 1,
+      "model_calls": 1,
+      "model_errors": 0
+    }
+  ],
+  "superseded_results": [
+    {
+      "case": "unknown_brand",
+      "user": "Quanto custa uma guitarra Gibson no PIX?",
+      "session_id": "unknown",
+      "customer_context": null,
+      "passed": false,
+      "tool_selection_pass": true,
+      "facts_check_pass": true,
+      "forbidden_response_check_pass": false,
+      "model_execution_pass": true,
+      "tools": [
+        "search_products"
+      ],
+      "calls": [
+        {
+          "tool": "search_products",
+          "arguments": {
+            "category": "guitarras",
+            "query": "gibson"
+          }
+        }
+      ],
+      "response": "Não encontrei produto disponível que atenda a esses filtros. Podemos ajustar o modelo ou o orçamento?",
+      "response_source": "python_verified_facts",
+      "model_calls": 1,
+      "model_error": false,
+      "duration_seconds": 10.08
+    }
+  ],
+  "total_model_calls": 15
 }

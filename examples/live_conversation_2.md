@@ -15,7 +15,7 @@ Data: exact fictional public fixtures. No private challenge data.
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 41.34
+**Model planning calls:** 1; **model error:** False; **seconds:** 20.2
 
 **Customer:** Se eu fechar no PIX, dá mais 5% por cima? E em seis parcelas?
 
@@ -25,4 +25,4 @@ Data: exact fictional public fixtures. No private challenge data.
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 84.46
+**Model planning calls:** 1; **model error:** False; **seconds:** 91.65

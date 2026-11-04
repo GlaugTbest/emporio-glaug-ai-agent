@@ -6,11 +6,13 @@
     "why_this_matters": "Preserve customer filters, then resolve the new product before calculating PIX and installments.",
     "case_ids": [
       "budget_900",
-      "switch_product"
+      "switch_product",
+      "named_payment"
     ],
     "turns": [
       "Tenho até R$ 900 para um violão de nylon. Quais estão disponíveis?",
-      "E a Guitarra Demo Promocional no PIX e em seis parcelas?"
+      "E a Guitarra Demo Promocional no PIX e em seis parcelas?",
+      "E o Takamine GD20 no PIX?"
     ]
   },
   {

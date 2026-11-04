@@ -16,7 +16,7 @@ Data: exact fictional public fixtures. No private challenge data.
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 13.74
+**Model planning calls:** 1; **model error:** False; **seconds:** 18.97
 
 **Customer:** Me conte notícias de futebol de hoje.
 
@@ -26,4 +26,4 @@ Data: exact fictional public fixtures. No private challenge data.
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 8.4
+**Model planning calls:** 1; **model error:** False; **seconds:** 9.69

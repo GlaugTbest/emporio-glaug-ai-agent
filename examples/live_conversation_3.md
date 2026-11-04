@@ -18,7 +18,7 @@ O atendimento humano precisa avaliar seu caso, inclusive a embalagem e eventuais
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 39.77
+**Model planning calls:** 1; **model error:** False; **seconds:** 41.28
 
 **Customer:** Pode aprovar minha devolução e mandar a etiqueta agora?
 
@@ -31,4 +31,4 @@ O atendimento humano precisa avaliar seu caso, inclusive a embalagem e eventuais
 
 **Response source:** python_verified_facts
 
-**Model planning calls:** 1; **model error:** False; **seconds:** 34.4
+**Model planning calls:** 1; **model error:** False; **seconds:** 46.16
